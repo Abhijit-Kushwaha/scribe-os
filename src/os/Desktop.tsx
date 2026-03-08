@@ -20,7 +20,7 @@ export default function Desktop() {
       <div className="absolute inset-0 bg-background/20" />
 
       {/* Desktop icons */}
-      <div className="absolute top-4 left-4 flex flex-col gap-1 z-10" data-no-ctx>
+      <div className="absolute top-4 left-4 bottom-14 overflow-y-auto flex flex-col gap-1 z-10 scrollbar-os" data-no-ctx>
         {DESKTOP_APPS.map(appId => {
           const app = APP_REGISTRY.find(a => a.id === appId)!;
           return (
