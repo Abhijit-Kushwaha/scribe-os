@@ -3,9 +3,10 @@ import { Lock, ChevronUp } from 'lucide-react';
 
 interface Props {
   onUnlock: () => void;
+  username?: string;
 }
 
-export default function LockScreen({ onUnlock }: Props) {
+export default function LockScreen({ onUnlock, username = 'Scribe' }: Props) {
   const [time, setTime] = useState(new Date());
   const [showPin, setShowPin] = useState(false);
   const [pin, setPin] = useState('');
@@ -69,7 +70,7 @@ export default function LockScreen({ onUnlock }: Props) {
       <div className="w-20 h-20 rounded-full bg-secondary/50 border-2 border-primary/30 flex items-center justify-center mb-4 os-glow">
         <span className="text-3xl">👤</span>
       </div>
-      <div className="text-lg font-medium text-foreground mb-1">Scribe</div>
+      <div className="text-lg font-medium text-foreground mb-1">{username}</div>
       <div className="text-xs text-muted-foreground mb-6">admin</div>
 
       {/* PIN input */}
