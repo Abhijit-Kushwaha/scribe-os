@@ -1035,6 +1035,7 @@ export default function CodeEditorApp() {
   const [showTerminal, setShowTerminal] = useState(true);
   const [cursorLine, setCursorLine] = useState(1);
   const [cursorCol, setCursorCol] = useState(1);
+  const [newItemState, setNewItemState] = useState<{ folderPath: string; type: 'file' | 'folder' } | null>(null);
 
   const activeFile = files.find(f => f.path === activeTab) || null;
 
