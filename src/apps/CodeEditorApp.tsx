@@ -833,7 +833,151 @@ function Minimap({ lines, scrollPercent }: { lines: string[]; scrollPercent: num
   );
 }
 
-function CodeArea({ file, onChange }: { file: VFile; onChange: (content: string) => void }) {
+function FindReplaceWidget({ content, onChange, onClose, textareaRef }: {
+  content: string; onChange: (content: string) => void; onClose: () => void;
+  textareaRef: React.RefObject<HTMLTextAreaElement>;
+}) {
+  const [findText, setFindText] = useState('');
+  const [replaceText, setReplaceText] = useState('');
+  const [showReplace, setShowReplace] = useState(false);
+  const [matchCase, setMatchCase] = useState(false);
+  const [wholeWord, setWholeWord] = useState(false);
+  const [useRegex, setUseRegex] = useState(false);
+  const [currentMatch, setCurrentMatch] = useState(0);
+  const findRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => { findRef.current?.focus(); }, []);
+
+  const matches = useMemo(() => {
+    if (!findText) return [];
+    const results: { start: number; end: number }[] = [];
+    try {
+      let flags = 'g';
+      if (!matchCase) flags += 'i';
+      let pattern = useRegex ? findText : findText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (wholeWord) pattern = `\\b${pattern}\\b`;
+      const regex = new RegExp(pattern, flags);
+      let m;
+      while ((m = regex.exec(content)) !== null) {
+        results.push({ start: m.index, end: m.index + m[0].length });
+        if (m[0].length === 0) break; // prevent infinite loop on empty match
+      }
+    } catch { /* invalid regex */ }
+    return results;
+  }, [findText, content, matchCase, wholeWord, useRegex]);
+
+  const goToMatch = useCallback((idx: number) => {
+    if (matches.length === 0) return;
+    const i = ((idx % matches.length) + matches.length) % matches.length;
+    setCurrentMatch(i);
+    const ta = textareaRef.current;
+    if (ta) {
+      ta.focus();
+      ta.setSelectionRange(matches[i].start, matches[i].end);
+      // Scroll to match
+      const before = content.substring(0, matches[i].start);
+      const line = before.split('\n').length - 1;
+      ta.scrollTop = line * 20 - ta.clientHeight / 2;
+    }
+  }, [matches, content, textareaRef]);
+
+  const handleNext = () => goToMatch(currentMatch + 1);
+  const handlePrev = () => goToMatch(currentMatch - 1);
+
+  const handleReplace = () => {
+    if (matches.length === 0) return;
+    const m = matches[currentMatch];
+    if (!m) return;
+    const newContent = content.substring(0, m.start) + replaceText + content.substring(m.end);
+    onChange(newContent);
+  };
+
+  const handleReplaceAll = () => {
+    if (matches.length === 0) return;
+    try {
+      let flags = 'g';
+      if (!matchCase) flags += 'i';
+      let pattern = useRegex ? findText : findText.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+      if (wholeWord) pattern = `\\b${pattern}\\b`;
+      const regex = new RegExp(pattern, flags);
+      onChange(content.replace(regex, replaceText));
+    } catch { /* invalid regex */ }
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') { onClose(); return; }
+    if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); handleNext(); }
+    if (e.key === 'Enter' && e.shiftKey) { e.preventDefault(); handlePrev(); }
+  };
+
+  const ToggleBtn = ({ active, onClick, title, children }: { active: boolean; onClick: () => void; title: string; children: React.ReactNode }) => (
+    <button
+      onClick={onClick}
+      title={title}
+      className={`w-[26px] h-[22px] flex items-center justify-center rounded text-[11px] font-mono transition-colors ${
+        active ? 'bg-[#007acc] text-white' : 'text-gray-400 hover:bg-[#3c3c3c]'
+      }`}
+    >
+      {children}
+    </button>
+  );
+
+  return (
+    <div className="absolute top-0 right-[72px] z-50 bg-[#252526] border border-[#454545] rounded-bl shadow-xl flex flex-col" style={{ minWidth: 340 }}>
+      <div className="flex items-center gap-1 px-2 py-1">
+        <button onClick={() => setShowReplace(r => !r)} className="p-0.5 hover:bg-[#3c3c3c] rounded text-gray-400 shrink-0" title="Toggle Replace">
+          <ChevronRight size={14} className={`transition-transform ${showReplace ? 'rotate-90' : ''}`} />
+        </button>
+        <div className="flex-1 flex items-center gap-1 bg-[#3c3c3c] border border-[#555] rounded px-1.5 h-[24px] focus-within:border-[#007acc]">
+          <input
+            ref={findRef}
+            value={findText}
+            onChange={e => { setFindText(e.target.value); setCurrentMatch(0); }}
+            onKeyDown={handleKeyDown}
+            className="flex-1 bg-transparent text-[13px] text-gray-200 outline-none min-w-0"
+            placeholder="Find"
+          />
+          <ToggleBtn active={matchCase} onClick={() => setMatchCase(c => !c)} title="Match Case">Aa</ToggleBtn>
+          <ToggleBtn active={wholeWord} onClick={() => setWholeWord(w => !w)} title="Match Whole Word">ab</ToggleBtn>
+          <ToggleBtn active={useRegex} onClick={() => setUseRegex(r => !r)} title="Use Regular Expression">.*</ToggleBtn>
+        </div>
+        <span className="text-[11px] text-gray-400 min-w-[60px] text-center shrink-0">
+          {findText ? `${matches.length > 0 ? currentMatch + 1 : 'No'} of ${matches.length}` : 'No results'}
+        </span>
+        <button onClick={handlePrev} className="p-0.5 hover:bg-[#3c3c3c] rounded text-gray-400" title="Previous (Shift+Enter)">
+          <ChevronRight size={14} className="-rotate-90" />
+        </button>
+        <button onClick={handleNext} className="p-0.5 hover:bg-[#3c3c3c] rounded text-gray-400" title="Next (Enter)">
+          <ChevronRight size={14} className="rotate-90" />
+        </button>
+        <button onClick={onClose} className="p-0.5 hover:bg-[#3c3c3c] rounded text-gray-400" title="Close (Escape)">
+          <X size={14} />
+        </button>
+      </div>
+      {showReplace && (
+        <div className="flex items-center gap-1 px-2 py-1 pl-[30px]">
+          <div className="flex-1 flex items-center bg-[#3c3c3c] border border-[#555] rounded px-1.5 h-[24px] focus-within:border-[#007acc]">
+            <input
+              value={replaceText}
+              onChange={e => setReplaceText(e.target.value)}
+              onKeyDown={e => { if (e.key === 'Escape') onClose(); }}
+              className="flex-1 bg-transparent text-[13px] text-gray-200 outline-none min-w-0"
+              placeholder="Replace"
+            />
+          </div>
+          <button onClick={handleReplace} className="p-0.5 hover:bg-[#3c3c3c] rounded text-gray-400 text-[11px] px-1" title="Replace">
+            ⤿
+          </button>
+          <button onClick={handleReplaceAll} className="p-0.5 hover:bg-[#3c3c3c] rounded text-gray-400 text-[11px] px-1" title="Replace All">
+            ⤿A
+          </button>
+        </div>
+      )}
+    </div>
+  );
+}
+
+function CodeArea({ file, onChange, showFind, onCloseFind }: { file: VFile; onChange: (content: string) => void; showFind: boolean; onCloseFind: () => void }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const lineNumberRef = useRef<HTMLDivElement>(null);
   const codeDisplayRef = useRef<HTMLDivElement>(null);
@@ -884,6 +1028,16 @@ function CodeArea({ file, onChange }: { file: VFile; onChange: (content: string)
 
   return (
     <div className="flex-1 flex overflow-hidden relative">
+      {/* Find & Replace widget */}
+      {showFind && (
+        <FindReplaceWidget
+          content={file.content}
+          onChange={onChange}
+          onClose={onCloseFind}
+          textareaRef={textareaRef as React.RefObject<HTMLTextAreaElement>}
+        />
+      )}
+
       {/* Line numbers */}
       <div
         ref={lineNumberRef}
@@ -1041,6 +1195,7 @@ export default function CodeEditorApp() {
   const [cursorLine, setCursorLine] = useState(1);
   const [cursorCol, setCursorCol] = useState(1);
   const [newItemState, setNewItemState] = useState<{ folderPath: string; type: 'file' | 'folder' } | null>(null);
+  const [showFind, setShowFind] = useState(false);
 
   const activeFile = files.find(f => f.path === activeTab) || null;
 
@@ -1181,6 +1336,10 @@ export default function CodeEditorApp() {
         e.preventDefault();
         setShowTerminal(t => !t);
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        setShowFind(true);
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -1226,7 +1385,7 @@ export default function CodeEditorApp() {
               {activeFile && <Breadcrumbs path={activeFile.path} />}
               <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-[#1e1e1e]">
                 <div className={`flex-1 min-h-0 overflow-hidden ${showTerminal ? '' : ''}`}>
-                  {activeFile && <CodeArea file={activeFile} onChange={updateFileContent} />}
+                  {activeFile && <CodeArea file={activeFile} onChange={updateFileContent} showFind={showFind} onCloseFind={() => setShowFind(false)} />}
                 </div>
                 {showTerminal && (
                   <div className="h-[180px] border-t border-[#2b2b2b] shrink-0">
