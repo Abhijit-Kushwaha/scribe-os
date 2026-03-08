@@ -99,6 +99,9 @@ interface Tab {
   url: string;
   title: string;
   iframeUrl?: string;
+  htmlContent?: string;
+  fetchStatus?: 'loading' | 'success' | 'error';
+  fetchError?: string;
 }
 
 interface CircuitHop {
@@ -191,22 +194,56 @@ export default function TorBrowserApp() {
   const currentTab = tabs.find(t => t.id === activeTab) || tabs[0];
   const currentSite = ONION_SITES[currentTab.url];
 
-  const navigate = useCallback((url: string) => {
+  // Fetch real .onion content via onion.ws gateway + CORS proxy
+  const torFetch = useCallback(async (onionUrl: string): Promise<{ html: string; ok: boolean }> => {
+    const gatewayUrl = `https://${onionUrl}.ws`;
+    const proxyUrl = `https://corsproxy.io/?${encodeURIComponent(gatewayUrl)}`;
+    try {
+      const res = await fetch(proxyUrl, { signal: AbortSignal.timeout(15000) });
+      if (!res.ok) throw new Error(`HTTP ${res.status}`);
+      let html = await res.text();
+      // Rewrite relative URLs to go through the gateway
+      const base = gatewayUrl;
+      html = html.replace(/(href|src|action)="\/(?!\/)/g, `$1="${base}/`);
+      return { html, ok: true };
+    } catch (err: any) {
+      return { html: '', ok: false };
+    }
+  }, []);
+
+  const navigate = useCallback(async (url: string) => {
     setLoading(true);
     setUrlInput(url);
     newCircuit();
     const site = ONION_SITES[url];
-    const delay = Math.random() * 2000 + 1000; // Tor is slow
-    setTimeout(() => {
+
+    if (url.endsWith('.onion')) {
+      // Try real fetch via onion.ws gateway
+      setTabs(prev => prev.map(t => t.id === activeTab ? {
+        ...t, url, title: site?.title || 'Loading...', fetchStatus: 'loading' as const, htmlContent: undefined,
+      } : t));
+
+      const { html, ok } = await torFetch(url);
+
       setTabs(prev => prev.map(t => t.id === activeTab ? {
         ...t,
         url,
-        title: site?.title || url.slice(0, 20) + '...',
-        iframeUrl: site?.clearnetMirror,
+        title: site?.title || (ok ? url.slice(0, 16) + '...' : 'Error'),
+        htmlContent: ok ? html : undefined,
+        fetchStatus: ok ? 'success' as const : 'error' as const,
+        fetchError: ok ? undefined : 'Gateway unreachable — circuit may be blocked',
+        iframeUrl: undefined,
       } : t));
-      setLoading(false);
-    }, delay);
-  }, [activeTab, newCircuit]);
+    } else {
+      // Non-onion URL
+      setTimeout(() => {
+        setTabs(prev => prev.map(t => t.id === activeTab ? {
+          ...t, url, title: site?.title || url.slice(0, 20) + '...', iframeUrl: site?.clearnetMirror,
+        } : t));
+      }, 800);
+    }
+    setLoading(false);
+  }, [activeTab, newCircuit, torFetch]);
 
   const verifyTor = useCallback(async () => {
     setTorVerified(false);
