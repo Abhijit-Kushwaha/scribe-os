@@ -833,6 +833,123 @@ function Minimap({ lines, scrollPercent }: { lines: string[]; scrollPercent: num
   );
 }
 
+// ─── Command Palette ─────────────────────────────────────────────────
+
+interface PaletteCommand {
+  id: string;
+  label: string;
+  shortcut?: string;
+  category: string;
+  action: () => void;
+}
+
+function CommandPalette({ commands, onClose }: { commands: PaletteCommand[]; onClose: () => void }) {
+  const [query, setQuery] = useState('');
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const filtered = useMemo(() => {
+    if (!query.trim()) return commands;
+    const q = query.toLowerCase();
+    return commands.filter(cmd => {
+      const text = `${cmd.category} ${cmd.label}`.toLowerCase();
+      // fuzzy: all query chars must appear in order
+      let qi = 0;
+      for (let i = 0; i < text.length && qi < q.length; i++) {
+        if (text[i] === q[qi]) qi++;
+      }
+      return qi === q.length;
+    }).sort((a, b) => {
+      const aExact = a.label.toLowerCase().includes(q) ? 0 : 1;
+      const bExact = b.label.toLowerCase().includes(q) ? 0 : 1;
+      return aExact - bExact;
+    });
+  }, [query, commands]);
+
+  useEffect(() => { setSelectedIdx(0); }, [query]);
+
+  useEffect(() => {
+    const el = listRef.current?.children[selectedIdx] as HTMLElement;
+    if (el) el.scrollIntoView({ block: 'nearest' });
+  }, [selectedIdx]);
+
+  const execute = (cmd: PaletteCommand) => {
+    onClose();
+    cmd.action();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') { onClose(); return; }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIdx(i => Math.min(i + 1, filtered.length - 1)); return; }
+    if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedIdx(i => Math.max(i - 1, 0)); return; }
+    if (e.key === 'Enter' && filtered[selectedIdx]) { execute(filtered[selectedIdx]); return; }
+  };
+
+  // Highlight matching chars
+  const highlight = (text: string) => {
+    if (!query.trim()) return <span>{text}</span>;
+    const q = query.toLowerCase();
+    const result: React.ReactNode[] = [];
+    let qi = 0;
+    for (let i = 0; i < text.length; i++) {
+      if (qi < q.length && text[i].toLowerCase() === q[qi]) {
+        result.push(<span key={i} className="text-[#ffcc00] font-semibold">{text[i]}</span>);
+        qi++;
+      } else {
+        result.push(<span key={i}>{text[i]}</span>);
+      }
+    }
+    return <>{result}</>;
+  };
+
+  return (
+    <div className="absolute inset-0 z-[9999] flex justify-center" onClick={onClose}>
+      <div
+        className="mt-0 w-[500px] max-h-[350px] bg-[#252526] border border-[#454545] rounded-b-lg shadow-2xl flex flex-col overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center px-3 py-2 border-b border-[#454545]">
+          <span className="text-gray-400 mr-2 text-[13px]">{'>'}</span>
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Type a command..."
+            className="flex-1 bg-transparent text-[13px] text-gray-200 outline-none placeholder:text-gray-500"
+          />
+        </div>
+        <div ref={listRef} className="flex-1 overflow-y-auto scrollbar-os">
+          {filtered.length === 0 && (
+            <div className="px-3 py-4 text-center text-[12px] text-gray-500">No commands found</div>
+          )}
+          {filtered.map((cmd, i) => (
+            <button
+              key={cmd.id}
+              onMouseEnter={() => setSelectedIdx(i)}
+              onClick={() => execute(cmd)}
+              className={`w-full flex items-center justify-between px-3 py-1.5 text-[13px] transition-colors ${
+                i === selectedIdx ? 'bg-[#094771] text-white' : 'text-gray-300 hover:bg-[#2a2d2e]'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-[11px] text-gray-500 shrink-0 w-16 text-right">{cmd.category}</span>
+                <span className="truncate">{highlight(cmd.label)}</span>
+              </div>
+              {cmd.shortcut && (
+                <kbd className="text-[11px] text-gray-500 bg-[#333] rounded px-1.5 py-0.5 ml-2 shrink-0">{cmd.shortcut}</kbd>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 function FindReplaceWidget({ content, onChange, onClose, textareaRef }: {
   content: string; onChange: (content: string) => void; onClose: () => void;
   textareaRef: React.RefObject<HTMLTextAreaElement>;
@@ -1196,6 +1313,7 @@ export default function CodeEditorApp() {
   const [cursorCol, setCursorCol] = useState(1);
   const [newItemState, setNewItemState] = useState<{ folderPath: string; type: 'file' | 'folder' } | null>(null);
   const [showFind, setShowFind] = useState(false);
+  const [showCommandPalette, setShowCommandPalette] = useState(false);
 
   const activeFile = files.find(f => f.path === activeTab) || null;
 
@@ -1340,6 +1458,10 @@ export default function CodeEditorApp() {
         e.preventDefault();
         setShowFind(true);
       }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'P') {
+        e.preventDefault();
+        setShowCommandPalette(p => !p);
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -1347,8 +1469,37 @@ export default function CodeEditorApp() {
 
   const tabs = openTabs.map(p => files.find(f => f.path === p)!).filter(Boolean);
 
+  const paletteCommands: PaletteCommand[] = useMemo(() => [
+    { id: 'save', label: 'Save File', shortcut: 'Ctrl+S', category: 'File', action: () => setFiles(prev => prev.map(f => f.path === activeTab ? { ...f, isModified: false } : f)) },
+    { id: 'close-tab', label: 'Close Active Tab', shortcut: 'Ctrl+W', category: 'File', action: () => { if (activeTab) closeTab(activeTab); } },
+    { id: 'new-file', label: 'New File', category: 'File', action: () => handleNewFile('/') },
+    { id: 'new-folder', label: 'New Folder', category: 'File', action: () => handleNewFolder('/') },
+    { id: 'find', label: 'Find', shortcut: 'Ctrl+F', category: 'Edit', action: () => setShowFind(true) },
+    { id: 'toggle-terminal', label: 'Toggle Terminal', shortcut: 'Ctrl+`', category: 'View', action: () => setShowTerminal(t => !t) },
+    { id: 'toggle-sidebar', label: 'Toggle Sidebar', shortcut: 'Ctrl+B', category: 'View', action: () => setSidebarPanel(p => p ? '' : 'explorer') },
+    { id: 'explorer', label: 'Show Explorer', category: 'View', action: () => setSidebarPanel('explorer') },
+    { id: 'search-panel', label: 'Show Search', category: 'View', action: () => setSidebarPanel('search') },
+    { id: 'git-panel', label: 'Show Source Control', category: 'View', action: () => setSidebarPanel('git') },
+    { id: 'debug-panel', label: 'Show Debug', category: 'View', action: () => setSidebarPanel('debug') },
+    { id: 'extensions-panel', label: 'Show Extensions', category: 'View', action: () => setSidebarPanel('extensions') },
+    { id: 'minimap', label: 'Toggle Minimap', category: 'View', action: () => {} },
+    { id: 'word-wrap', label: 'Toggle Word Wrap', category: 'View', action: () => {} },
+    { id: 'format-doc', label: 'Format Document', shortcut: 'Shift+Alt+F', category: 'Edit', action: () => {} },
+    { id: 'cmd-palette', label: 'Command Palette', shortcut: 'Ctrl+Shift+P', category: 'View', action: () => setShowCommandPalette(true) },
+    ...files.map(f => ({
+      id: `open-${f.path}`,
+      label: f.name,
+      category: 'Open File',
+      action: () => openFile(f),
+    })),
+  ], [activeTab, files, closeTab, handleNewFile, handleNewFolder, openFile]);
+
   return (
-    <div className="h-full flex flex-col bg-[#1e1e1e] text-gray-200 overflow-hidden" ref={editorRef}>
+    <div className="h-full flex flex-col bg-[#1e1e1e] text-gray-200 overflow-hidden relative" ref={editorRef}>
+      {/* Command Palette */}
+      {showCommandPalette && (
+        <CommandPalette commands={paletteCommands} onClose={() => setShowCommandPalette(false)} />
+      )}
       {/* Titlebar */}
       <div className="flex items-center h-[30px] bg-[#323233] text-[12px] text-gray-300 px-3 select-none shrink-0">
         <div className="flex items-center gap-3 flex-1">

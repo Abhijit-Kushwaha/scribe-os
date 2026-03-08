@@ -4,7 +4,7 @@ import { APP_REGISTRY } from './appRegistry';
 import StartMenu from './StartMenu';
 
 export default function Taskbar() {
-  const { windows, focusWindow, minimizeWindow } = useOS();
+  const { windows, focusWindow, minimizeWindow, settings } = useOS();
   const [time, setTime] = useState(new Date());
   const [startOpen, setStartOpen] = useState(false);
 
@@ -18,10 +18,24 @@ export default function Taskbar() {
     else minimizeWindow(id);
   };
 
+  const isTop = settings.taskbarPosition === 'top';
+
+  const timeOptions: Intl.DateTimeFormatOptions = {
+    hour: '2-digit',
+    minute: '2-digit',
+    ...(settings.showSeconds ? { second: '2-digit' } : {}),
+    hour12: !settings.use24Hour,
+  };
+
   return (
     <>
       {startOpen && <StartMenu onClose={() => setStartOpen(false)} />}
-      <div className="absolute bottom-0 left-0 right-0 h-12 taskbar-blur border-t border-border/30 flex items-center px-2 gap-1" style={{ zIndex: 9999 }}>
+      <div
+        className={`absolute left-0 right-0 h-12 ${settings.transparency ? 'taskbar-blur' : 'bg-[hsl(var(--os-taskbar))]'} border-border/30 flex items-center px-2 gap-1 ${
+          isTop ? 'top-0 border-b' : 'bottom-0 border-t'
+        }`}
+        style={{ zIndex: 9999 }}
+      >
         {/* Start button */}
         <button
           onClick={() => setStartOpen(!startOpen)}
@@ -64,7 +78,7 @@ export default function Taskbar() {
           <span className="opacity-60">🔊</span>
           <span className="opacity-60">📶</span>
           <div className="text-right">
-            <div className="font-medium">{time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}</div>
+            <div className="font-medium">{time.toLocaleTimeString([], timeOptions)}</div>
             <div className="text-[10px] opacity-60">{time.toLocaleDateString()}</div>
           </div>
         </div>
