@@ -83,7 +83,7 @@ export default function TerminalApp() {
                       Resolution: ${window.innerWidth}x${window.innerHeight}
                       Terminal: Scribe Terminal
                       CPU: WebAssembly vCPU
-                      Memory: ${Math.round(performance.memory?.usedJSHeapSize / 1024 / 1024 || 128)}MB / ${Math.round(performance.memory?.totalJSHeapSize / 1024 / 1024 || 512)}MB`);
+                      Memory: ${Math.round(((performance as any).memory?.usedJSHeapSize || 134217728) / 1024 / 1024)}MB / ${Math.round(((performance as any).memory?.totalJSHeapSize || 536870912) / 1024 / 1024)}MB`);
         break;
       case 'dir': case 'ls': {
         const node = getNode(cwd);
