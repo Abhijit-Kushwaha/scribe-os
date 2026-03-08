@@ -10,14 +10,14 @@ const CATEGORIES = [
   { id: 'core', label: 'Core', apps: ['terminal', 'cmd', 'files', 'notepad', 'code'] },
   { id: 'internet', label: 'Internet', apps: ['browser', 'tor', 'email'] },
   { id: 'security', label: 'Security', apps: ['vpn', 'adblock', 'passwords'] },
-  { id: 'media', label: 'Media', apps: ['music', 'video', 'images'] },
-  { id: 'productivity', label: 'Productivity', apps: ['notes', 'spreadsheet', 'calculator'] },
-  { id: 'utilities', label: 'Utilities', apps: ['taskmanager', 'settings', 'weather', 'network', 'keyboard', 'recycle'] },
+  { id: 'media', label: 'Media', apps: ['music', 'video', 'images', 'paint'] },
+  { id: 'productivity', label: 'Productivity', apps: ['notes', 'spreadsheet', 'calculator', 'contacts', 'clock'] },
+  { id: 'utilities', label: 'Utilities', apps: ['taskmanager', 'settings', 'weather', 'network', 'keyboard', 'clipboard', 'sysinfo', 'recycle'] },
   { id: 'fun', label: 'Fun', apps: ['games', 'aichat'] },
 ];
 
 export default function StartMenu({ onClose }: Props) {
-  const { openWindow, settings } = useOS();
+  const { openWindow, settings, onSleep, onRestart, onShutdown } = useOS();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
   const [showPower, setShowPower] = useState(false);
@@ -120,13 +120,13 @@ export default function StartMenu({ onClose }: Props) {
             </button>
             {showPower && (
               <div className="absolute bottom-full right-0 mb-1 w-36 os-glass rounded-lg py-1 os-window-shadow">
-                <button className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-muted-foreground hover:bg-muted/30 hover:text-foreground">
+                <button onClick={() => { onSleep?.(); onClose(); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-muted-foreground hover:bg-muted/30 hover:text-foreground">
                   <Moon size={12} /> Sleep
                 </button>
-                <button className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-muted-foreground hover:bg-muted/30 hover:text-foreground">
+                <button onClick={() => { onRestart?.(); onClose(); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-muted-foreground hover:bg-muted/30 hover:text-foreground">
                   <RotateCcw size={12} /> Restart
                 </button>
-                <button className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-destructive hover:bg-destructive/10">
+                <button onClick={() => { onShutdown?.(); onClose(); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-destructive hover:bg-destructive/10">
                   <LogOut size={12} /> Shut Down
                 </button>
               </div>

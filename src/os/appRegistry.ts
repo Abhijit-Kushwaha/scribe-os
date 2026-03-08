@@ -24,6 +24,11 @@ import NetworkMonitorApp from '../apps/NetworkMonitorApp';
 import KeyboardTesterApp from '../apps/KeyboardTesterApp';
 import EmailClientApp from '../apps/EmailClientApp';
 import RecycleBinApp from '../apps/RecycleBinApp';
+import ClockApp from '../apps/ClockApp';
+import PaintApp from '../apps/PaintApp';
+import SystemInfoApp from '../apps/SystemInfoApp';
+import ClipboardApp from '../apps/ClipboardApp';
+import ContactsApp from '../apps/ContactsApp';
 
 export const APP_REGISTRY: OSApp[] = [
   // Core
@@ -44,18 +49,23 @@ export const APP_REGISTRY: OSApp[] = [
   { id: 'music', name: 'Music', icon: '🎵', component: MusicPlayerApp, defaultWidth: 380, defaultHeight: 560 },
   { id: 'video', name: 'Video', icon: '📹', component: VideoPlayerApp, defaultWidth: 640, defaultHeight: 480 },
   { id: 'images', name: 'Photos', icon: '🖼️', component: ImageViewerApp, defaultWidth: 550, defaultHeight: 450 },
+  { id: 'paint', name: 'Paint', icon: '🎨', component: PaintApp, defaultWidth: 650, defaultHeight: 480 },
   // Productivity
   { id: 'notes', name: 'Notes', icon: '🗒️', component: NotesApp, defaultWidth: 600, defaultHeight: 450 },
   { id: 'spreadsheet', name: 'Spreadsheet', icon: '📊', component: SpreadsheetApp, defaultWidth: 700, defaultHeight: 500 },
   { id: 'calculator', name: 'Calculator', icon: '🧮', component: CalculatorApp, defaultWidth: 320, defaultHeight: 480 },
+  { id: 'contacts', name: 'Contacts', icon: '👥', component: ContactsApp, defaultWidth: 550, defaultHeight: 420 },
+  { id: 'clock', name: 'Clock', icon: '⏰', component: ClockApp, defaultWidth: 380, defaultHeight: 520 },
   // Utilities
   { id: 'taskmanager', name: 'Task Manager', icon: '📋', component: TaskManagerApp, defaultWidth: 500, defaultHeight: 500 },
   { id: 'settings', name: 'Settings', icon: '⚙️', component: SettingsApp, defaultWidth: 450, defaultHeight: 400 },
   { id: 'weather', name: 'Weather', icon: '🌡️', component: WeatherApp, defaultWidth: 380, defaultHeight: 480 },
   { id: 'network', name: 'Network', icon: '📶', component: NetworkMonitorApp, defaultWidth: 400, defaultHeight: 500 },
   { id: 'keyboard', name: 'Keyboard Test', icon: '⌨️', component: KeyboardTesterApp, defaultWidth: 600, defaultHeight: 380 },
+  { id: 'clipboard', name: 'Clipboard', icon: '📋', component: ClipboardApp, defaultWidth: 400, defaultHeight: 450 },
+  { id: 'sysinfo', name: 'System Info', icon: '🖥️', component: SystemInfoApp, defaultWidth: 550, defaultHeight: 450 },
   { id: 'recycle', name: 'Recycle Bin', icon: '🗑️', component: RecycleBinApp, defaultWidth: 450, defaultHeight: 400 },
   // Fun
-  { id: 'games', name: 'Games', icon: '🎮', component: GameLauncherApp, defaultWidth: 380, defaultHeight: 500 },
+  { id: 'games', name: 'Games', icon: '🎮', component: GameLauncherApp, defaultWidth: 380, defaultHeight: 520 },
   { id: 'aichat', name: 'AI Chat', icon: '🤖', component: AIChatApp, defaultWidth: 500, defaultHeight: 500 },
 ];
