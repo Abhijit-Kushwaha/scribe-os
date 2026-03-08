@@ -10,6 +10,7 @@ export interface OSWindow {
   maximized: boolean;
   focused: boolean;
   zIndex: number;
+  snapped?: 'left' | 'right';
 }
 
 export interface OSApp {
