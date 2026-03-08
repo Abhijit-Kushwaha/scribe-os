@@ -536,15 +536,50 @@ function ActivityBar({ active, onSelect }: { active: string; onSelect: (id: stri
   );
 }
 
-function FileTreeItem({ node, depth, onSelect, selectedPath, onToggle }: {
+function FileTreeItem({ node, depth, onSelect, selectedPath, onToggle, onDelete, onNewFile, onNewFolder }: {
   node: TreeNode; depth: number; onSelect: (file: VFile) => void; selectedPath: string; onToggle: (path: string) => void;
+  onDelete: (path: string) => void; onNewFile: (folderPath: string) => void; onNewFolder: (folderPath: string) => void;
 }) {
+  const [showCtx, setShowCtx] = useState(false);
+  const [ctxPos, setCtxPos] = useState({ x: 0, y: 0 });
+  const ctxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showCtx) return;
+    const close = (e: MouseEvent) => {
+      if (ctxRef.current && !ctxRef.current.contains(e.target as Node)) setShowCtx(false);
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [showCtx]);
+
+  const handleCtx = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCtxPos({ x: e.clientX, y: e.clientY });
+    setShowCtx(true);
+  };
+
+  const ctxMenu = showCtx && (
+    <div ref={ctxRef} className="fixed z-[9999] bg-[#2d2d30] border border-[#454545] rounded shadow-xl py-1 min-w-[160px] text-[12px]" style={{ left: ctxPos.x, top: ctxPos.y }}>
+      {isFolder(node) && (
+        <>
+          <button className="w-full text-left px-3 py-1 text-gray-200 hover:bg-[#094771]" onClick={() => { setShowCtx(false); onNewFile(node.path); }}>New File</button>
+          <button className="w-full text-left px-3 py-1 text-gray-200 hover:bg-[#094771]" onClick={() => { setShowCtx(false); onNewFolder(node.path); }}>New Folder</button>
+          <div className="border-t border-[#454545] my-1" />
+        </>
+      )}
+      <button className="w-full text-left px-3 py-1 text-gray-200 hover:bg-[#094771]" onClick={() => { setShowCtx(false); onDelete(node.path); }}>Delete</button>
+    </div>
+  );
+
   if (isFolder(node)) {
     return (
       <div>
         <button
           onClick={() => onToggle(node.path)}
-          className={`w-full flex items-center gap-1 py-[2px] pr-2 text-[13px] hover:bg-[#2a2d2e] transition-colors`}
+          onContextMenu={handleCtx}
+          className={`w-full flex items-center gap-1 py-[2px] pr-2 text-[13px] hover:bg-[#2a2d2e] transition-colors group`}
           style={{ paddingLeft: depth * 12 + 4 }}
         >
           {node.expanded ? <ChevronDown size={14} className="text-gray-400 shrink-0" /> : <ChevronRight size={14} className="text-gray-400 shrink-0" />}
@@ -552,25 +587,30 @@ function FileTreeItem({ node, depth, onSelect, selectedPath, onToggle }: {
           <span className="truncate text-gray-300 ml-0.5">{node.name}</span>
         </button>
         {node.expanded && node.children.map(child => (
-          <FileTreeItem key={child.path} node={child} depth={depth + 1} onSelect={onSelect} selectedPath={selectedPath} onToggle={onToggle} />
+          <FileTreeItem key={child.path} node={child} depth={depth + 1} onSelect={onSelect} selectedPath={selectedPath} onToggle={onToggle} onDelete={onDelete} onNewFile={onNewFile} onNewFolder={onNewFolder} />
         ))}
+        {ctxMenu}
       </div>
     );
   }
 
   const isActive = selectedPath === node.path;
   return (
-    <button
-      onClick={() => onSelect(node)}
-      className={`w-full flex items-center gap-1 py-[2px] pr-2 text-[13px] transition-colors ${
-        isActive ? 'bg-[#37373d]' : 'hover:bg-[#2a2d2e]'
-      }`}
-      style={{ paddingLeft: depth * 12 + 22 }}
-    >
-      <FileCode size={15} className={`${fileIcon(node.name)} shrink-0`} />
-      <span className={`truncate ml-0.5 ${isActive ? 'text-white' : 'text-gray-300'}`}>{node.name}</span>
-      {node.isModified && <span className="ml-auto w-2 h-2 rounded-full bg-blue-400 shrink-0" />}
-    </button>
+    <>
+      <button
+        onClick={() => onSelect(node)}
+        onContextMenu={handleCtx}
+        className={`w-full flex items-center gap-1 py-[2px] pr-2 text-[13px] transition-colors ${
+          isActive ? 'bg-[#37373d]' : 'hover:bg-[#2a2d2e]'
+        }`}
+        style={{ paddingLeft: depth * 12 + 22 }}
+      >
+        <FileCode size={15} className={`${fileIcon(node.name)} shrink-0`} />
+        <span className={`truncate ml-0.5 ${isActive ? 'text-white' : 'text-gray-300'}`}>{node.name}</span>
+        {node.isModified && <span className="ml-auto w-2 h-2 rounded-full bg-blue-400 shrink-0" />}
+      </button>
+      {ctxMenu}
+    </>
   );
 }
 
