@@ -488,14 +488,60 @@ export default function TorBrowserApp() {
               ))}
             </div>
           </div>
+        ) : currentTab.htmlContent ? (
+          /* Real fetched .onion HTML */
+          <div className="h-full flex flex-col">
+            <div className="flex items-center gap-2 px-3 py-1.5 bg-green-900/20 border-b border-green-500/20 text-[10px] text-green-400">
+              <Shield size={10} />
+              <span>✓ Real .onion content loaded via Tor gateway</span>
+              <span className="font-mono text-[9px] ml-auto text-[#8f8f9d]">{currentTab.url.slice(0, 40)}...</span>
+            </div>
+            <iframe
+              srcDoc={currentTab.htmlContent}
+              className="flex-1 w-full border-0"
+              sandbox="allow-scripts allow-forms"
+              title={currentSite?.title || currentTab.url}
+              style={{ background: '#fff' }}
+            />
+          </div>
+        ) : currentTab.fetchStatus === 'error' ? (
+          /* Fetch failed — show site info card */
+          <div className="p-6">
+            <div className="max-w-md mx-auto">
+              <div className="flex items-center gap-3 mb-4">
+                <span className="text-3xl">{currentSite?.favicon || '🧅'}</span>
+                <div>
+                  <h1 className="text-lg font-bold text-[#fbfbfe]">{currentSite?.title || currentTab.url.slice(0, 24)}</h1>
+                  {currentSite && <span className="text-[9px] px-1.5 py-0.5 rounded bg-[#42414d] text-[#8f8f9d]">{currentSite.category}</span>}
+                </div>
+              </div>
+              <div className="bg-yellow-900/20 border border-yellow-500/30 rounded-lg p-3 mb-4 text-[11px] text-yellow-300">
+                ⚠ Gateway connection failed. The .onion.ws gateway may be temporarily unavailable or blocking this request.
+              </div>
+              {currentSite && (
+                <div className="bg-[#2b2a33] rounded-lg p-4 mb-4">
+                  <p className="text-[#bfbfc9] text-sm">{currentSite.description}</p>
+                </div>
+              )}
+              <div className="bg-[#2b2a33] rounded-lg p-3 mb-3">
+                <div className="flex items-center gap-1 mb-2 text-[10px] text-[#8f8f9d]">
+                  <Shield size={10} className="text-[#7542e5]" /> Onion Address
+                </div>
+                <div className="font-mono text-[10px] text-[#bfbfc9] break-all">{currentTab.url}</div>
+              </div>
+              <button onClick={() => navigate(currentTab.url)}
+                className="w-full py-2 rounded bg-[#7542e5]/20 text-[#7542e5] text-[11px] hover:bg-[#7542e5]/30 transition-colors">
+                🔄 Retry via new circuit
+              </button>
+            </div>
+          </div>
         ) : currentSite ? (
           currentSite.clearnetMirror ? (
             <div className="h-full flex flex-col">
-              {/* Info banner */}
               <div className="flex items-center gap-2 px-3 py-1.5 bg-[#7542e5]/10 border-b border-[#7542e5]/20 text-[10px] text-[#bfbfc9]">
                 <Shield size={10} className="text-[#7542e5]" />
                 <span>Onion-routed: <span className="font-mono text-[#8f8f9d]">{currentTab.url.slice(0, 30)}...</span></span>
-                <span className="ml-auto text-[#8f8f9d]">via clearnet mirror (CORS)</span>
+                <span className="ml-auto text-[#8f8f9d]">via clearnet mirror</span>
               </div>
               <iframe
                 src={currentSite.clearnetMirror}
@@ -522,13 +568,9 @@ export default function TorBrowserApp() {
                     <Shield size={10} className="text-[#7542e5]" /> Onion Service Info
                   </div>
                   <div className="font-mono text-[10px] text-[#bfbfc9] break-all">{currentTab.url}</div>
-                  <div className="text-[9px] text-[#8f8f9d] mt-2">
-                    This site does not have a clearnet mirror available for embedding.
-                    In a real Tor Browser, the page would render via the onion routing network.
-                  </div>
                 </div>
                 <div className="bg-[#2b2a33] rounded-lg p-3 text-[10px]">
-                  <div className="text-[#8f8f9d] mb-1">Current Circuit for this site:</div>
+                  <div className="text-[#8f8f9d] mb-1">Current Circuit:</div>
                   <div className="flex items-center gap-1 flex-wrap">
                     {circuit.map((hop, i) => (
                       <React.Fragment key={i}>
