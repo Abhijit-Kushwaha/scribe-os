@@ -7,7 +7,7 @@ import DesktopIcon from './DesktopIcon';
 import DesktopContextMenu, { useDesktopContextMenu } from './DesktopContextMenu';
 import wallpaper from '@/assets/wallpaper.jpg';
 
-const DESKTOP_APPS = ['terminal', 'cmd', 'files', 'notepad', 'code', 'browser', 'tor', 'vpn', 'adblock', 'taskmanager', 'settings'];
+const DESKTOP_APPS = ['terminal', 'cmd', 'files', 'notepad', 'code', 'browser', 'tor', 'vpn', 'adblock', 'taskmanager', 'settings', 'aichat'];
 
 export default function Desktop() {
   const { windows, openWindow } = useOS();

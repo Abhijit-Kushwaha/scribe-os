@@ -10,6 +10,7 @@ import SettingsApp from '../apps/SettingsApp';
 import VPNApp from '../apps/VPNApp';
 import AdBlockApp from '../apps/AdBlockApp';
 import TaskManagerApp from '../apps/TaskManagerApp';
+import AIChatApp from '../apps/AIChatApp';
 
 export const APP_REGISTRY: OSApp[] = [
   { id: 'terminal', name: 'Terminal', icon: '💻', component: TerminalApp, defaultWidth: 700, defaultHeight: 450 },
@@ -23,4 +24,5 @@ export const APP_REGISTRY: OSApp[] = [
   { id: 'adblock', name: 'uBlock', icon: '🛡️', component: AdBlockApp, defaultWidth: 380, defaultHeight: 520 },
   { id: 'taskmanager', name: 'Task Manager', icon: '📊', component: TaskManagerApp, defaultWidth: 500, defaultHeight: 500 },
   { id: 'settings', name: 'Settings', icon: '⚙️', component: SettingsApp, defaultWidth: 450, defaultHeight: 400 },
+  { id: 'aichat', name: 'AI Chat', icon: '🤖', component: AIChatApp, defaultWidth: 500, defaultHeight: 500 },
 ];
