@@ -661,7 +661,7 @@ function Sidebar({ tree, onSelect, selectedPath, onToggle, sidebarPanel, onDelet
         </div>
         <div className="flex-1 overflow-y-auto scrollbar-os text-[13px]">
           {tree.children.map(child => (
-            <FileTreeItem key={child.path} node={child} depth={0} onSelect={onSelect} selectedPath={selectedPath} onToggle={onToggle} onDelete={onDelete} onNewFile={onNewFile} onNewFolder={onNewFolder} />
+            <FileTreeItem key={child.path} node={child} depth={0} onSelect={onSelect} selectedPath={selectedPath} onToggle={onToggle} onDelete={onDelete} onNewFile={onNewFile} onNewFolder={onNewFolder} newItemState={newItemState} onNewItemSubmit={onNewItemSubmit} onNewItemCancel={onNewItemCancel} />
           ))}
           {newItemState && newItemState.folderPath === tree.path && (
             <NewItemInput type={newItemState.type} depth={0} onSubmit={onNewItemSubmit} onCancel={onNewItemCancel} />
