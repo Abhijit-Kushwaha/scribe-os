@@ -1067,6 +1067,91 @@ export default function CodeEditorApp() {
     setFiles(prev => prev.map(f => f.path === activeTab ? { ...f, content, isModified: true } : f));
   }, [activeTab]);
 
+  const rebuildTree = useCallback((newFiles: VFile[]) => {
+    setTree(buildTree(newFiles));
+  }, []);
+
+  const handleNewFile = useCallback((folderPath: string) => {
+    setNewItemState({ folderPath, type: 'file' });
+    // Expand the target folder
+    const expand = (node: VFolder): VFolder => ({
+      ...node,
+      expanded: node.path === folderPath ? true : node.expanded,
+      children: node.children.map(c => isFolder(c) ? expand(c) : c),
+    });
+    setTree(prev => expand(prev));
+  }, []);
+
+  const handleNewFolder = useCallback((folderPath: string) => {
+    setNewItemState({ folderPath, type: 'folder' });
+    const expand = (node: VFolder): VFolder => ({
+      ...node,
+      expanded: node.path === folderPath ? true : node.expanded,
+      children: node.children.map(c => isFolder(c) ? expand(c) : c),
+    });
+    setTree(prev => expand(prev));
+  }, []);
+
+  const handleNewItemSubmit = useCallback((name: string) => {
+    if (!newItemState) return;
+    const parentPath = newItemState.folderPath === '/' ? '' : newItemState.folderPath;
+    const newPath = `${parentPath}/${name}`;
+    if (newItemState.type === 'file') {
+      const newFile: VFile = { name, path: newPath, content: '', language: detectLang(name), isModified: false };
+      setFiles(prev => {
+        const next = [...prev, newFile];
+        rebuildTree(next);
+        return next;
+      });
+      setOpenTabs(prev => [...prev, newPath]);
+      setActiveTab(newPath);
+    } else {
+      // Add empty folder to tree
+      const addFolder = (node: VFolder): VFolder => {
+        if (node.path === newItemState.folderPath) {
+          const exists = node.children.some(c => isFolder(c) && c.name === name);
+          if (exists) return node;
+          return { ...node, children: [...node.children, { name, path: newPath, children: [], expanded: true } as VFolder] };
+        }
+        return { ...node, children: node.children.map(c => isFolder(c) ? addFolder(c) : c) };
+      };
+      setTree(prev => addFolder(prev));
+    }
+    setNewItemState(null);
+  }, [newItemState, rebuildTree]);
+
+  const handleNewItemCancel = useCallback(() => {
+    setNewItemState(null);
+  }, []);
+
+  const handleDelete = useCallback((path: string) => {
+    // Remove from files
+    setFiles(prev => {
+      const next = prev.filter(f => !f.path.startsWith(path));
+      rebuildTree(next);
+      return next;
+    });
+    // Remove from open tabs
+    setOpenTabs(prev => {
+      const next = prev.filter(p => !p.startsWith(path));
+      if (activeTab.startsWith(path)) {
+        setActiveTab(next[next.length - 1] || '');
+      }
+      return next;
+    });
+    // Also remove folders from tree that have no files
+    const removeFromTree = (node: VFolder): VFolder => ({
+      ...node,
+      children: node.children
+        .filter(c => {
+          if (isFolder(c)) return c.path !== path;
+          return (c as VFile).path !== path;
+        })
+        .map(c => isFolder(c) ? removeFromTree(c) : c),
+    });
+    setTree(prev => removeFromTree(prev));
+  }, [activeTab, rebuildTree]);
+
   // Track cursor from CodeArea via DOM
   const editorRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
