@@ -1195,6 +1195,7 @@ export default function CodeEditorApp() {
   const [cursorLine, setCursorLine] = useState(1);
   const [cursorCol, setCursorCol] = useState(1);
   const [newItemState, setNewItemState] = useState<{ folderPath: string; type: 'file' | 'folder' } | null>(null);
+  const [showFind, setShowFind] = useState(false);
 
   const activeFile = files.find(f => f.path === activeTab) || null;
 
@@ -1335,6 +1336,10 @@ export default function CodeEditorApp() {
         e.preventDefault();
         setShowTerminal(t => !t);
       }
+      if ((e.ctrlKey || e.metaKey) && e.key === 'f') {
+        e.preventDefault();
+        setShowFind(true);
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
@@ -1380,7 +1385,7 @@ export default function CodeEditorApp() {
               {activeFile && <Breadcrumbs path={activeFile.path} />}
               <div className="flex-1 flex flex-col min-h-0 overflow-hidden bg-[#1e1e1e]">
                 <div className={`flex-1 min-h-0 overflow-hidden ${showTerminal ? '' : ''}`}>
-                  {activeFile && <CodeArea file={activeFile} onChange={updateFileContent} />}
+                  {activeFile && <CodeArea file={activeFile} onChange={updateFileContent} showFind={showFind} onCloseFind={() => setShowFind(false)} />}
                 </div>
                 {showTerminal && (
                   <div className="h-[180px] border-t border-[#2b2b2b] shrink-0">
