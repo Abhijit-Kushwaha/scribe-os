@@ -1341,6 +1341,10 @@ export default function CodeEditorApp() {
         e.preventDefault();
         setShowFind(true);
       }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === 'P') {
+        e.preventDefault();
+        setShowCommandPalette(p => !p);
+      }
     };
     window.addEventListener('keydown', handler);
     return () => window.removeEventListener('keydown', handler);
