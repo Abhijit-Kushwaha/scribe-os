@@ -10,9 +10,9 @@ const CATEGORIES = [
   { id: 'core', label: 'Core', apps: ['terminal', 'cmd', 'files', 'notepad', 'code'] },
   { id: 'internet', label: 'Internet', apps: ['browser', 'tor', 'email'] },
   { id: 'security', label: 'Security', apps: ['vpn', 'adblock', 'passwords'] },
-  { id: 'media', label: 'Media', apps: ['music', 'video', 'images'] },
-  { id: 'productivity', label: 'Productivity', apps: ['notes', 'spreadsheet', 'calculator'] },
-  { id: 'utilities', label: 'Utilities', apps: ['taskmanager', 'settings', 'weather', 'network', 'keyboard', 'recycle'] },
+  { id: 'media', label: 'Media', apps: ['music', 'video', 'images', 'paint'] },
+  { id: 'productivity', label: 'Productivity', apps: ['notes', 'spreadsheet', 'calculator', 'contacts', 'clock'] },
+  { id: 'utilities', label: 'Utilities', apps: ['taskmanager', 'settings', 'weather', 'network', 'keyboard', 'clipboard', 'sysinfo', 'recycle'] },
   { id: 'fun', label: 'Fun', apps: ['games', 'aichat'] },
 ];
 

@@ -13,10 +13,11 @@ const DESKTOP_APPS = [
   'browser', 'tor', 'email',
   'terminal', 'cmd', 'files',
   'notepad', 'code', 'notes',
-  'music', 'video', 'images',
-  'calculator', 'spreadsheet',
+  'music', 'video', 'images', 'paint',
+  'calculator', 'spreadsheet', 'contacts',
   'vpn', 'adblock', 'passwords',
   'weather', 'network', 'keyboard',
+  'clock', 'clipboard', 'sysinfo',
   'taskmanager', 'settings',
   'games', 'aichat', 'recycle',
 ];
