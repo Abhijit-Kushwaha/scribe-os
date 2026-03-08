@@ -1469,8 +1469,37 @@ export default function CodeEditorApp() {
 
   const tabs = openTabs.map(p => files.find(f => f.path === p)!).filter(Boolean);
 
+  const paletteCommands: PaletteCommand[] = useMemo(() => [
+    { id: 'save', label: 'Save File', shortcut: 'Ctrl+S', category: 'File', action: () => setFiles(prev => prev.map(f => f.path === activeTab ? { ...f, isModified: false } : f)) },
+    { id: 'close-tab', label: 'Close Active Tab', shortcut: 'Ctrl+W', category: 'File', action: () => { if (activeTab) closeTab(activeTab); } },
+    { id: 'new-file', label: 'New File', category: 'File', action: () => handleNewFile('/') },
+    { id: 'new-folder', label: 'New Folder', category: 'File', action: () => handleNewFolder('/') },
+    { id: 'find', label: 'Find', shortcut: 'Ctrl+F', category: 'Edit', action: () => setShowFind(true) },
+    { id: 'toggle-terminal', label: 'Toggle Terminal', shortcut: 'Ctrl+`', category: 'View', action: () => setShowTerminal(t => !t) },
+    { id: 'toggle-sidebar', label: 'Toggle Sidebar', shortcut: 'Ctrl+B', category: 'View', action: () => setSidebarPanel(p => p ? '' : 'explorer') },
+    { id: 'explorer', label: 'Show Explorer', category: 'View', action: () => setSidebarPanel('explorer') },
+    { id: 'search-panel', label: 'Show Search', category: 'View', action: () => setSidebarPanel('search') },
+    { id: 'git-panel', label: 'Show Source Control', category: 'View', action: () => setSidebarPanel('git') },
+    { id: 'debug-panel', label: 'Show Debug', category: 'View', action: () => setSidebarPanel('debug') },
+    { id: 'extensions-panel', label: 'Show Extensions', category: 'View', action: () => setSidebarPanel('extensions') },
+    { id: 'minimap', label: 'Toggle Minimap', category: 'View', action: () => {} },
+    { id: 'word-wrap', label: 'Toggle Word Wrap', category: 'View', action: () => {} },
+    { id: 'format-doc', label: 'Format Document', shortcut: 'Shift+Alt+F', category: 'Edit', action: () => {} },
+    { id: 'cmd-palette', label: 'Command Palette', shortcut: 'Ctrl+Shift+P', category: 'View', action: () => setShowCommandPalette(true) },
+    ...files.map(f => ({
+      id: `open-${f.path}`,
+      label: f.name,
+      category: 'Open File',
+      action: () => openFile(f),
+    })),
+  ], [activeTab, files, closeTab, handleNewFile, handleNewFolder, openFile]);
+
   return (
-    <div className="h-full flex flex-col bg-[#1e1e1e] text-gray-200 overflow-hidden" ref={editorRef}>
+    <div className="h-full flex flex-col bg-[#1e1e1e] text-gray-200 overflow-hidden relative" ref={editorRef}>
+      {/* Command Palette */}
+      {showCommandPalette && (
+        <CommandPalette commands={paletteCommands} onClose={() => setShowCommandPalette(false)} />
+      )}
       {/* Titlebar */}
       <div className="flex items-center h-[30px] bg-[#323233] text-[12px] text-gray-300 px-3 select-none shrink-0">
         <div className="flex items-center gap-3 flex-1">
