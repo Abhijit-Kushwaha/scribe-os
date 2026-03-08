@@ -1,11 +1,6 @@
 import React, { useState } from 'react';
-import { Mail, Send, Inbox, Star, Trash2, Settings, LogIn, LogOut, AlertCircle, CheckCircle } from 'lucide-react';
+import { Mail, Send, Inbox, Star, Trash2, LogOut, AlertCircle, CheckCircle } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
-
-interface EmailCredentials {
-  email: string;
-  password: string;
-}
 
 interface ComposeEmail {
   to: string;
@@ -14,27 +9,10 @@ interface ComposeEmail {
 }
 
 const EmailClientApp: React.FC = () => {
-  const [isLoggedIn, setIsLoggedIn] = useState(false);
-  const [credentials, setCredentials] = useState<EmailCredentials>({ email: '', password: '' });
   const [activeFolder, setActiveFolder] = useState('compose');
   const [compose, setCompose] = useState<ComposeEmail>({ to: '', subject: '', body: '' });
   const [sending, setSending] = useState(false);
   const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
-
-  const handleLogin = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (credentials.email && credentials.password) {
-      setIsLoggedIn(true);
-      setStatus(null);
-    }
-  };
-
-  const handleLogout = () => {
-    setIsLoggedIn(false);
-    setCredentials({ email: '', password: '' });
-    setCompose({ to: '', subject: '', body: '' });
-    setStatus(null);
-  };
 
   const handleSendEmail = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -49,20 +27,16 @@ const EmailClientApp: React.FC = () => {
     try {
       const { data, error } = await supabase.functions.invoke('send-email', {
         body: {
-          email: credentials.email,
-          password: credentials.password,
           to: compose.to,
           subject: compose.subject,
           body: compose.body,
         },
       });
 
-      if (error) {
-        throw new Error(error.message);
-      }
+      if (error) throw new Error(error.message);
 
       if (data?.error) {
-        setStatus({ type: 'error', message: data.error + (data.hint ? ` (${data.hint})` : '') });
+        setStatus({ type: 'error', message: data.error });
       } else {
         setStatus({ type: 'success', message: 'Email sent successfully!' });
         setCompose({ to: '', subject: '', body: '' });
@@ -81,80 +55,16 @@ const EmailClientApp: React.FC = () => {
     { id: 'trash', name: 'Trash', icon: Trash2, count: 0 },
   ];
 
-  if (!isLoggedIn) {
-    return (
-      <div className="h-full bg-[#1a1a2e] flex items-center justify-center p-4">
-        <div className="w-full max-w-md">
-          <div className="text-center mb-8">
-            <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
-              <Mail className="w-8 h-8 text-white" />
-            </div>
-            <h1 className="text-2xl font-bold text-white mb-2">Email Client</h1>
-            <p className="text-gray-400 text-sm">Sign in with your email credentials</p>
-          </div>
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-gray-300 text-sm mb-1">Email Address</label>
-              <input
-                type="email"
-                value={credentials.email}
-                onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
-                placeholder="your@email.com"
-                className="w-full bg-[#252542] border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
-                required
-              />
-            </div>
-
-            <div>
-              <label className="block text-gray-300 text-sm mb-1">Password / App Password</label>
-              <input
-                type="password"
-                value={credentials.password}
-                onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
-                placeholder="••••••••••••"
-                className="w-full bg-[#252542] border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
-                required
-              />
-            </div>
-
-            <button
-              type="submit"
-              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-3 rounded-lg flex items-center justify-center gap-2 transition-all"
-            >
-              <LogIn className="w-4 h-4" />
-              Sign In
-            </button>
-          </form>
-
-          <div className="mt-6 p-4 bg-[#252542] rounded-lg">
-            <h3 className="text-yellow-400 text-sm font-medium flex items-center gap-2 mb-2">
-              <AlertCircle className="w-4 h-4" />
-              Important Notes
-            </h3>
-            <ul className="text-gray-400 text-xs space-y-1">
-              <li>• Gmail: Use App Password (not regular password)</li>
-              <li>• ProtonMail: Requires Bridge app for SMTP</li>
-              <li>• Outlook/Yahoo: May need app-specific password</li>
-            </ul>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="h-full flex bg-[#1a1a2e] text-white">
       {/* Sidebar */}
       <div className="w-56 bg-[#16162a] border-r border-gray-700 flex flex-col">
         <div className="p-4 border-b border-gray-700">
           <div className="flex items-center gap-2 text-sm">
-            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-xs font-bold">
-              {credentials.email[0]?.toUpperCase()}
+            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center">
+              <Mail className="w-4 h-4" />
             </div>
-            <div className="flex-1 truncate">
-              <div className="font-medium truncate">{credentials.email}</div>
-            </div>
+            <div className="font-medium">Email Client</div>
           </div>
         </div>
 
@@ -174,16 +84,6 @@ const EmailClientApp: React.FC = () => {
             </button>
           ))}
         </nav>
-
-        <div className="p-2 border-t border-gray-700">
-          <button
-            onClick={handleLogout}
-            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-gray-700/50 transition-colors"
-          >
-            <LogOut className="w-4 h-4" />
-            Sign Out
-          </button>
-        </div>
       </div>
 
       {/* Main Content */}
@@ -241,7 +141,7 @@ const EmailClientApp: React.FC = () => {
               </div>
             </div>
 
-            <div className="mt-4">
+            <div className="mt-4 flex items-center gap-3">
               <button
                 type="submit"
                 disabled={sending}
@@ -259,6 +159,7 @@ const EmailClientApp: React.FC = () => {
                   </>
                 )}
               </button>
+              <span className="text-xs text-gray-500">Sent via Resend • from onboarding@resend.dev</span>
             </div>
           </form>
         ) : (
@@ -266,7 +167,7 @@ const EmailClientApp: React.FC = () => {
             <div className="text-center">
               <Inbox className="w-16 h-16 mx-auto mb-4 opacity-30" />
               <p>No emails in {activeFolder}</p>
-              <p className="text-sm mt-2">IMAP inbox sync not available</p>
+              <p className="text-sm mt-2">Inbox sync coming soon</p>
             </div>
           </div>
         )}
