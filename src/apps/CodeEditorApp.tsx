@@ -536,15 +536,52 @@ function ActivityBar({ active, onSelect }: { active: string; onSelect: (id: stri
   );
 }
 
-function FileTreeItem({ node, depth, onSelect, selectedPath, onToggle }: {
+function FileTreeItem({ node, depth, onSelect, selectedPath, onToggle, onDelete, onNewFile, onNewFolder, newItemState, onNewItemSubmit, onNewItemCancel }: {
   node: TreeNode; depth: number; onSelect: (file: VFile) => void; selectedPath: string; onToggle: (path: string) => void;
+  onDelete: (path: string) => void; onNewFile: (folderPath: string) => void; onNewFolder: (folderPath: string) => void;
+  newItemState: { folderPath: string; type: 'file' | 'folder' } | null;
+  onNewItemSubmit: (name: string) => void; onNewItemCancel: () => void;
 }) {
+  const [showCtx, setShowCtx] = useState(false);
+  const [ctxPos, setCtxPos] = useState({ x: 0, y: 0 });
+  const ctxRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    if (!showCtx) return;
+    const close = (e: MouseEvent) => {
+      if (ctxRef.current && !ctxRef.current.contains(e.target as Node)) setShowCtx(false);
+    };
+    document.addEventListener('mousedown', close);
+    return () => document.removeEventListener('mousedown', close);
+  }, [showCtx]);
+
+  const handleCtx = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setCtxPos({ x: e.clientX, y: e.clientY });
+    setShowCtx(true);
+  };
+
+  const ctxMenu = showCtx && (
+    <div ref={ctxRef} className="fixed z-[9999] bg-[#2d2d30] border border-[#454545] rounded shadow-xl py-1 min-w-[160px] text-[12px]" style={{ left: ctxPos.x, top: ctxPos.y }}>
+      {isFolder(node) && (
+        <>
+          <button className="w-full text-left px-3 py-1 text-gray-200 hover:bg-[#094771]" onClick={() => { setShowCtx(false); onNewFile(node.path); }}>New File</button>
+          <button className="w-full text-left px-3 py-1 text-gray-200 hover:bg-[#094771]" onClick={() => { setShowCtx(false); onNewFolder(node.path); }}>New Folder</button>
+          <div className="border-t border-[#454545] my-1" />
+        </>
+      )}
+      <button className="w-full text-left px-3 py-1 text-gray-200 hover:bg-[#094771]" onClick={() => { setShowCtx(false); onDelete(node.path); }}>Delete</button>
+    </div>
+  );
+
   if (isFolder(node)) {
     return (
       <div>
         <button
           onClick={() => onToggle(node.path)}
-          className={`w-full flex items-center gap-1 py-[2px] pr-2 text-[13px] hover:bg-[#2a2d2e] transition-colors`}
+          onContextMenu={handleCtx}
+          className={`w-full flex items-center gap-1 py-[2px] pr-2 text-[13px] hover:bg-[#2a2d2e] transition-colors group`}
           style={{ paddingLeft: depth * 12 + 4 }}
         >
           {node.expanded ? <ChevronDown size={14} className="text-gray-400 shrink-0" /> : <ChevronRight size={14} className="text-gray-400 shrink-0" />}
@@ -552,30 +589,63 @@ function FileTreeItem({ node, depth, onSelect, selectedPath, onToggle }: {
           <span className="truncate text-gray-300 ml-0.5">{node.name}</span>
         </button>
         {node.expanded && node.children.map(child => (
-          <FileTreeItem key={child.path} node={child} depth={depth + 1} onSelect={onSelect} selectedPath={selectedPath} onToggle={onToggle} />
+          <FileTreeItem key={child.path} node={child} depth={depth + 1} onSelect={onSelect} selectedPath={selectedPath} onToggle={onToggle} onDelete={onDelete} onNewFile={onNewFile} onNewFolder={onNewFolder} newItemState={newItemState} onNewItemSubmit={onNewItemSubmit} onNewItemCancel={onNewItemCancel} />
         ))}
+        {node.expanded && newItemState && newItemState.folderPath === node.path && (
+          <NewItemInput type={newItemState.type} depth={depth + 1} onSubmit={onNewItemSubmit} onCancel={onNewItemCancel} />
+        )}
+        {ctxMenu}
       </div>
     );
   }
 
   const isActive = selectedPath === node.path;
   return (
-    <button
-      onClick={() => onSelect(node)}
-      className={`w-full flex items-center gap-1 py-[2px] pr-2 text-[13px] transition-colors ${
-        isActive ? 'bg-[#37373d]' : 'hover:bg-[#2a2d2e]'
-      }`}
-      style={{ paddingLeft: depth * 12 + 22 }}
-    >
-      <FileCode size={15} className={`${fileIcon(node.name)} shrink-0`} />
-      <span className={`truncate ml-0.5 ${isActive ? 'text-white' : 'text-gray-300'}`}>{node.name}</span>
-      {node.isModified && <span className="ml-auto w-2 h-2 rounded-full bg-blue-400 shrink-0" />}
-    </button>
+    <>
+      <button
+        onClick={() => onSelect(node)}
+        onContextMenu={handleCtx}
+        className={`w-full flex items-center gap-1 py-[2px] pr-2 text-[13px] transition-colors ${
+          isActive ? 'bg-[#37373d]' : 'hover:bg-[#2a2d2e]'
+        }`}
+        style={{ paddingLeft: depth * 12 + 22 }}
+      >
+        <FileCode size={15} className={`${fileIcon(node.name)} shrink-0`} />
+        <span className={`truncate ml-0.5 ${isActive ? 'text-white' : 'text-gray-300'}`}>{node.name}</span>
+        {node.isModified && <span className="ml-auto w-2 h-2 rounded-full bg-blue-400 shrink-0" />}
+      </button>
+      {ctxMenu}
+    </>
   );
 }
 
-function Sidebar({ tree, onSelect, selectedPath, onToggle, sidebarPanel }: {
+function NewItemInput({ type, depth, onSubmit, onCancel }: { type: 'file' | 'folder'; depth: number; onSubmit: (name: string) => void; onCancel: () => void }) {
+  const [value, setValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { inputRef.current?.focus(); }, []);
+  return (
+    <div className="flex items-center gap-1 py-[2px] pr-2" style={{ paddingLeft: depth * 12 + (type === 'file' ? 22 : 4) }}>
+      {type === 'folder' ? <Folder size={15} className="text-yellow-600/70 shrink-0" /> : <FileCode size={15} className="text-gray-400 shrink-0" />}
+      <input
+        ref={inputRef}
+        value={value}
+        onChange={e => setValue(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' && value.trim()) onSubmit(value.trim());
+          if (e.key === 'Escape') onCancel();
+        }}
+        onBlur={() => { if (value.trim()) onSubmit(value.trim()); else onCancel(); }}
+        className="flex-1 bg-[#3c3c3c] border border-[#007acc] rounded px-1 py-0 text-[13px] text-gray-200 outline-none"
+      />
+    </div>
+  );
+}
+
+function Sidebar({ tree, onSelect, selectedPath, onToggle, sidebarPanel, onDelete, onNewFile, onNewFolder, newItemState, onNewItemSubmit, onNewItemCancel }: {
   tree: VFolder; onSelect: (file: VFile) => void; selectedPath: string; onToggle: (path: string) => void; sidebarPanel: string;
+  onDelete: (path: string) => void; onNewFile: (folderPath: string) => void; onNewFolder: (folderPath: string) => void;
+  newItemState: { folderPath: string; type: 'file' | 'folder' } | null;
+  onNewItemSubmit: (name: string) => void; onNewItemCancel: () => void;
 }) {
   if (sidebarPanel === 'explorer') {
     return (
@@ -584,15 +654,18 @@ function Sidebar({ tree, onSelect, selectedPath, onToggle, sidebarPanel }: {
         <div className="flex items-center justify-between px-3 py-1 text-[11px] font-semibold text-gray-300 uppercase tracking-wide bg-[#1e1e1e]">
           <span>{tree.name}</span>
           <div className="flex gap-1">
-            <button className="p-0.5 hover:bg-[#383838] rounded"><Plus size={14} className="text-gray-400" /></button>
-            <button className="p-0.5 hover:bg-[#383838] rounded"><FolderOpen size={14} className="text-gray-400" /></button>
+            <button className="p-0.5 hover:bg-[#383838] rounded" title="New File" onClick={() => onNewFile(tree.path)}><Plus size={14} className="text-gray-400" /></button>
+            <button className="p-0.5 hover:bg-[#383838] rounded" title="New Folder" onClick={() => onNewFolder(tree.path)}><FolderOpen size={14} className="text-gray-400" /></button>
             <button className="p-0.5 hover:bg-[#383838] rounded"><RefreshCw size={14} className="text-gray-400" /></button>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto scrollbar-os text-[13px]">
           {tree.children.map(child => (
-            <FileTreeItem key={child.path} node={child} depth={0} onSelect={onSelect} selectedPath={selectedPath} onToggle={onToggle} />
+            <FileTreeItem key={child.path} node={child} depth={0} onSelect={onSelect} selectedPath={selectedPath} onToggle={onToggle} onDelete={onDelete} onNewFile={onNewFile} onNewFolder={onNewFolder} newItemState={newItemState} onNewItemSubmit={onNewItemSubmit} onNewItemCancel={onNewItemCancel} />
           ))}
+          {newItemState && newItemState.folderPath === tree.path && (
+            <NewItemInput type={newItemState.type} depth={0} onSubmit={onNewItemSubmit} onCancel={onNewItemCancel} />
+          )}
         </div>
       </div>
     );
@@ -967,6 +1040,7 @@ export default function CodeEditorApp() {
   const [showTerminal, setShowTerminal] = useState(true);
   const [cursorLine, setCursorLine] = useState(1);
   const [cursorCol, setCursorCol] = useState(1);
+  const [newItemState, setNewItemState] = useState<{ folderPath: string; type: 'file' | 'folder' } | null>(null);
 
   const activeFile = files.find(f => f.path === activeTab) || null;
 
@@ -997,6 +1071,91 @@ export default function CodeEditorApp() {
   const updateFileContent = useCallback((content: string) => {
     setFiles(prev => prev.map(f => f.path === activeTab ? { ...f, content, isModified: true } : f));
   }, [activeTab]);
+
+  const rebuildTree = useCallback((newFiles: VFile[]) => {
+    setTree(buildTree(newFiles));
+  }, []);
+
+  const handleNewFile = useCallback((folderPath: string) => {
+    setNewItemState({ folderPath, type: 'file' });
+    // Expand the target folder
+    const expand = (node: VFolder): VFolder => ({
+      ...node,
+      expanded: node.path === folderPath ? true : node.expanded,
+      children: node.children.map(c => isFolder(c) ? expand(c) : c),
+    });
+    setTree(prev => expand(prev));
+  }, []);
+
+  const handleNewFolder = useCallback((folderPath: string) => {
+    setNewItemState({ folderPath, type: 'folder' });
+    const expand = (node: VFolder): VFolder => ({
+      ...node,
+      expanded: node.path === folderPath ? true : node.expanded,
+      children: node.children.map(c => isFolder(c) ? expand(c) : c),
+    });
+    setTree(prev => expand(prev));
+  }, []);
+
+  const handleNewItemSubmit = useCallback((name: string) => {
+    if (!newItemState) return;
+    const parentPath = newItemState.folderPath === '/' ? '' : newItemState.folderPath;
+    const newPath = `${parentPath}/${name}`;
+    if (newItemState.type === 'file') {
+      const newFile: VFile = { name, path: newPath, content: '', language: detectLang(name), isModified: false };
+      setFiles(prev => {
+        const next = [...prev, newFile];
+        rebuildTree(next);
+        return next;
+      });
+      setOpenTabs(prev => [...prev, newPath]);
+      setActiveTab(newPath);
+    } else {
+      // Add empty folder to tree
+      const addFolder = (node: VFolder): VFolder => {
+        if (node.path === newItemState.folderPath) {
+          const exists = node.children.some(c => isFolder(c) && c.name === name);
+          if (exists) return node;
+          return { ...node, children: [...node.children, { name, path: newPath, children: [], expanded: true } as VFolder] };
+        }
+        return { ...node, children: node.children.map(c => isFolder(c) ? addFolder(c) : c) };
+      };
+      setTree(prev => addFolder(prev));
+    }
+    setNewItemState(null);
+  }, [newItemState, rebuildTree]);
+
+  const handleNewItemCancel = useCallback(() => {
+    setNewItemState(null);
+  }, []);
+
+  const handleDelete = useCallback((path: string) => {
+    // Remove from files
+    setFiles(prev => {
+      const next = prev.filter(f => !f.path.startsWith(path));
+      rebuildTree(next);
+      return next;
+    });
+    // Remove from open tabs
+    setOpenTabs(prev => {
+      const next = prev.filter(p => !p.startsWith(path));
+      if (activeTab.startsWith(path)) {
+        setActiveTab(next[next.length - 1] || '');
+      }
+      return next;
+    });
+    // Also remove folders from tree that have no files
+    const removeFromTree = (node: VFolder): VFolder => ({
+      ...node,
+      children: node.children
+        .filter(c => {
+          if (isFolder(c)) return c.path !== path;
+          return (c as VFile).path !== path;
+        })
+        .map(c => isFolder(c) ? removeFromTree(c) : c),
+    });
+    setTree(prev => removeFromTree(prev));
+  }, [activeTab, rebuildTree]);
 
   // Track cursor from CodeArea via DOM
   const editorRef = useRef<HTMLDivElement>(null);
@@ -1055,7 +1214,7 @@ export default function CodeEditorApp() {
         {/* Sidebar */}
         {sidebarPanel && (
           <div className="w-[220px] shrink-0 border-r border-[#2b2b2b] overflow-hidden">
-            <Sidebar tree={tree} onSelect={openFile} selectedPath={activeTab} onToggle={toggleFolder} sidebarPanel={sidebarPanel} />
+            <Sidebar tree={tree} onSelect={openFile} selectedPath={activeTab} onToggle={toggleFolder} sidebarPanel={sidebarPanel} onDelete={handleDelete} onNewFile={handleNewFile} onNewFolder={handleNewFolder} newItemState={newItemState} onNewItemSubmit={handleNewItemSubmit} onNewItemCancel={handleNewItemCancel} />
           </div>
         )}
 
