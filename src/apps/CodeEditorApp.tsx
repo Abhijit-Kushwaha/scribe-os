@@ -614,8 +614,11 @@ function FileTreeItem({ node, depth, onSelect, selectedPath, onToggle, onDelete,
   );
 }
 
-function Sidebar({ tree, onSelect, selectedPath, onToggle, sidebarPanel }: {
+function Sidebar({ tree, onSelect, selectedPath, onToggle, sidebarPanel, onDelete, onNewFile, onNewFolder, newItemState, onNewItemSubmit, onNewItemCancel }: {
   tree: VFolder; onSelect: (file: VFile) => void; selectedPath: string; onToggle: (path: string) => void; sidebarPanel: string;
+  onDelete: (path: string) => void; onNewFile: (folderPath: string) => void; onNewFolder: (folderPath: string) => void;
+  newItemState: { folderPath: string; type: 'file' | 'folder' } | null;
+  onNewItemSubmit: (name: string) => void; onNewItemCancel: () => void;
 }) {
   if (sidebarPanel === 'explorer') {
     return (
@@ -624,15 +627,18 @@ function Sidebar({ tree, onSelect, selectedPath, onToggle, sidebarPanel }: {
         <div className="flex items-center justify-between px-3 py-1 text-[11px] font-semibold text-gray-300 uppercase tracking-wide bg-[#1e1e1e]">
           <span>{tree.name}</span>
           <div className="flex gap-1">
-            <button className="p-0.5 hover:bg-[#383838] rounded"><Plus size={14} className="text-gray-400" /></button>
-            <button className="p-0.5 hover:bg-[#383838] rounded"><FolderOpen size={14} className="text-gray-400" /></button>
+            <button className="p-0.5 hover:bg-[#383838] rounded" title="New File" onClick={() => onNewFile(tree.path)}><Plus size={14} className="text-gray-400" /></button>
+            <button className="p-0.5 hover:bg-[#383838] rounded" title="New Folder" onClick={() => onNewFolder(tree.path)}><FolderOpen size={14} className="text-gray-400" /></button>
             <button className="p-0.5 hover:bg-[#383838] rounded"><RefreshCw size={14} className="text-gray-400" /></button>
           </div>
         </div>
         <div className="flex-1 overflow-y-auto scrollbar-os text-[13px]">
           {tree.children.map(child => (
-            <FileTreeItem key={child.path} node={child} depth={0} onSelect={onSelect} selectedPath={selectedPath} onToggle={onToggle} />
+            <FileTreeItem key={child.path} node={child} depth={0} onSelect={onSelect} selectedPath={selectedPath} onToggle={onToggle} onDelete={onDelete} onNewFile={onNewFile} onNewFolder={onNewFolder} />
           ))}
+          {newItemState && newItemState.folderPath === tree.path && (
+            <NewItemInput type={newItemState.type} depth={0} onSubmit={onNewItemSubmit} onCancel={onNewItemCancel} />
+          )}
         </div>
       </div>
     );
