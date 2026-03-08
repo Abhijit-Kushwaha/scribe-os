@@ -589,8 +589,11 @@ function FileTreeItem({ node, depth, onSelect, selectedPath, onToggle, onDelete,
           <span className="truncate text-gray-300 ml-0.5">{node.name}</span>
         </button>
         {node.expanded && node.children.map(child => (
-          <FileTreeItem key={child.path} node={child} depth={depth + 1} onSelect={onSelect} selectedPath={selectedPath} onToggle={onToggle} onDelete={onDelete} onNewFile={onNewFile} onNewFolder={onNewFolder} />
+          <FileTreeItem key={child.path} node={child} depth={depth + 1} onSelect={onSelect} selectedPath={selectedPath} onToggle={onToggle} onDelete={onDelete} onNewFile={onNewFile} onNewFolder={onNewFolder} newItemState={newItemState} onNewItemSubmit={onNewItemSubmit} onNewItemCancel={onNewItemCancel} />
         ))}
+        {node.expanded && newItemState && newItemState.folderPath === node.path && (
+          <NewItemInput type={newItemState.type} depth={depth + 1} onSubmit={onNewItemSubmit} onCancel={onNewItemCancel} />
+        )}
         {ctxMenu}
       </div>
     );
