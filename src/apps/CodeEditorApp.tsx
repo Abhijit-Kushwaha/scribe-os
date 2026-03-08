@@ -950,6 +950,7 @@ function CommandPalette({ commands, onClose }: { commands: PaletteCommand[]; onC
   );
 }
 
+function FindReplaceWidget({ content, onChange, onClose, textareaRef }: {
   content: string; onChange: (content: string) => void; onClose: () => void;
   textareaRef: React.RefObject<HTMLTextAreaElement>;
 }) {
