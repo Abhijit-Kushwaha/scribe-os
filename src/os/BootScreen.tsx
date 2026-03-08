@@ -90,14 +90,9 @@ export default function BootScreen({ onComplete }: Props) {
       <div className="flex-1 overflow-hidden p-6 font-mono text-xs">
         {visibleLines.map((line, i) => (
           <div key={i} className={`${colorClass(line.color)} whitespace-pre leading-5`}>
-            {line.text.replace('[  OK  ]', '')}
-            {line.text.startsWith('[  OK  ]') && (
-              <>
-                <span className="text-os-terminal-green font-bold">[  OK  ]</span>
-                {line.text.slice(8)}
-              </>
-            )}
-            {!line.text.startsWith('[  OK  ]') && line.text}
+            {line.text.startsWith('[  OK  ]') ? (
+              <><span className="text-os-terminal-green font-bold">[  OK  ]</span>{line.text.slice(8)}</>
+            ) : line.text}
           </div>
         ))}
         <div className="animate-blink text-os-terminal-green mt-1">█</div>
