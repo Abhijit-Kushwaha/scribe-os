@@ -1209,7 +1209,7 @@ export default function CodeEditorApp() {
         {/* Sidebar */}
         {sidebarPanel && (
           <div className="w-[220px] shrink-0 border-r border-[#2b2b2b] overflow-hidden">
-            <Sidebar tree={tree} onSelect={openFile} selectedPath={activeTab} onToggle={toggleFolder} sidebarPanel={sidebarPanel} />
+            <Sidebar tree={tree} onSelect={openFile} selectedPath={activeTab} onToggle={toggleFolder} sidebarPanel={sidebarPanel} onDelete={handleDelete} onNewFile={handleNewFile} onNewFolder={handleNewFolder} newItemState={newItemState} onNewItemSubmit={handleNewItemSubmit} onNewItemCancel={handleNewItemCancel} />
           </div>
         )}
 
