@@ -1,126 +1,278 @@
 import React, { useState } from 'react';
-import { Inbox, Send, Star, Trash2, Archive, Search, Paperclip, Reply, MoreVertical, Mail, Edit3 } from 'lucide-react';
+import { Mail, Send, Inbox, Star, Trash2, Settings, LogIn, LogOut, AlertCircle, CheckCircle } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
-interface Email { id: string; from: string; subject: string; preview: string; body: string; time: string; read: boolean; starred: boolean; folder: string; }
+interface EmailCredentials {
+  email: string;
+  password: string;
+}
 
-const EMAILS: Email[] = [
-  { id: '1', from: 'GitHub', subject: 'Security alert: new sign-in', preview: 'A new sign-in to your account...', body: 'A new sign-in to your GitHub account was detected from Chrome on Windows.\n\nIP: 203.0.113.42\nLocation: Mumbai, India\nTime: 2 minutes ago\n\nIf this was you, you can ignore this email.', time: '10:24 AM', read: false, starred: false, folder: 'inbox' },
-  { id: '2', from: 'ProtonMail Team', subject: 'Welcome to ProtonMail', preview: 'Your encrypted inbox is ready...', body: 'Welcome to ProtonMail!\n\nYour end-to-end encrypted inbox is ready. All messages are stored with zero-access encryption.\n\nEnjoy your privacy.', time: '9:15 AM', read: false, starred: true, folder: 'inbox' },
-  { id: '3', from: 'Docker Hub', subject: 'Image push successful', preview: 'scribeos/core:latest pushed...', body: 'Successfully pushed image:\n\nscribeos/core:latest\nSize: 142MB\nDigest: sha256:a1b2c3d4e5f6...\n\nView on Docker Hub.', time: 'Yesterday', read: true, starred: false, folder: 'inbox' },
-  { id: '4', from: 'Stripe', subject: 'Payment received - $49.00', preview: 'You received a payment...', body: 'Payment received!\n\nAmount: $49.00\nFrom: customer@example.com\nDescription: Pro subscription\n\nFunds will be available in 2 business days.', time: 'Yesterday', read: true, starred: false, folder: 'inbox' },
-  { id: '5', from: 'Vercel', subject: 'Deployment successful', preview: 'scribe-os.vercel.app is live...', body: 'Deployment Status: Ready ✓\n\nProject: scribe-os\nURL: scribe-os.vercel.app\nBranch: main\nCommit: feat: add browser app\n\nBuild time: 42s', time: 'Mar 5', read: true, starred: false, folder: 'inbox' },
-];
+interface ComposeEmail {
+  to: string;
+  subject: string;
+  body: string;
+}
 
-const FOLDERS = [
-  { id: 'inbox', name: 'Inbox', icon: Inbox, count: 2 },
-  { id: 'starred', name: 'Starred', icon: Star, count: 1 },
-  { id: 'sent', name: 'Sent', icon: Send, count: 0 },
-  { id: 'archive', name: 'Archive', icon: Archive, count: 0 },
-  { id: 'trash', name: 'Trash', icon: Trash2, count: 0 },
-];
+const EmailClientApp: React.FC = () => {
+  const [isLoggedIn, setIsLoggedIn] = useState(false);
+  const [credentials, setCredentials] = useState<EmailCredentials>({ email: '', password: '' });
+  const [activeFolder, setActiveFolder] = useState('compose');
+  const [compose, setCompose] = useState<ComposeEmail>({ to: '', subject: '', body: '' });
+  const [sending, setSending] = useState(false);
+  const [status, setStatus] = useState<{ type: 'success' | 'error'; message: string } | null>(null);
 
-export default function EmailClientApp({ windowId }: { windowId: string }) {
-  const [emails, setEmails] = useState(EMAILS);
-  const [folder, setFolder] = useState('inbox');
-  const [selected, setSelected] = useState<string | null>(null);
-  const [search, setSearch] = useState('');
-  const [composing, setComposing] = useState(false);
-
-  const folderEmails = emails.filter(e => folder === 'starred' ? e.starred : e.folder === folder);
-  const filtered = search ? folderEmails.filter(e => e.subject.toLowerCase().includes(search.toLowerCase()) || e.from.toLowerCase().includes(search.toLowerCase())) : folderEmails;
-  const active = emails.find(e => e.id === selected);
-
-  const selectEmail = (id: string) => {
-    setSelected(id);
-    setEmails(p => p.map(e => e.id === id ? { ...e, read: true } : e));
+  const handleLogin = (e: React.FormEvent) => {
+    e.preventDefault();
+    if (credentials.email && credentials.password) {
+      setIsLoggedIn(true);
+      setStatus(null);
+    }
   };
 
+  const handleLogout = () => {
+    setIsLoggedIn(false);
+    setCredentials({ email: '', password: '' });
+    setCompose({ to: '', subject: '', body: '' });
+    setStatus(null);
+  };
+
+  const handleSendEmail = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!compose.to || !compose.subject || !compose.body) {
+      setStatus({ type: 'error', message: 'Please fill all fields' });
+      return;
+    }
+
+    setSending(true);
+    setStatus(null);
+
+    try {
+      const { data, error } = await supabase.functions.invoke('send-email', {
+        body: {
+          email: credentials.email,
+          password: credentials.password,
+          to: compose.to,
+          subject: compose.subject,
+          body: compose.body,
+        },
+      });
+
+      if (error) {
+        throw new Error(error.message);
+      }
+
+      if (data?.error) {
+        setStatus({ type: 'error', message: data.error + (data.hint ? ` (${data.hint})` : '') });
+      } else {
+        setStatus({ type: 'success', message: 'Email sent successfully!' });
+        setCompose({ to: '', subject: '', body: '' });
+      }
+    } catch (err: any) {
+      setStatus({ type: 'error', message: err.message || 'Failed to send email' });
+    } finally {
+      setSending(false);
+    }
+  };
+
+  const folders = [
+    { id: 'compose', name: 'Compose', icon: Send, count: 0 },
+    { id: 'inbox', name: 'Inbox', icon: Inbox, count: 0 },
+    { id: 'starred', name: 'Starred', icon: Star, count: 0 },
+    { id: 'trash', name: 'Trash', icon: Trash2, count: 0 },
+  ];
+
+  if (!isLoggedIn) {
+    return (
+      <div className="h-full bg-[#1a1a2e] flex items-center justify-center p-4">
+        <div className="w-full max-w-md">
+          <div className="text-center mb-8">
+            <div className="w-16 h-16 bg-gradient-to-br from-purple-500 to-pink-500 rounded-2xl flex items-center justify-center mx-auto mb-4">
+              <Mail className="w-8 h-8 text-white" />
+            </div>
+            <h1 className="text-2xl font-bold text-white mb-2">Email Client</h1>
+            <p className="text-gray-400 text-sm">Sign in with your email credentials</p>
+          </div>
+
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label className="block text-gray-300 text-sm mb-1">Email Address</label>
+              <input
+                type="email"
+                value={credentials.email}
+                onChange={(e) => setCredentials({ ...credentials, email: e.target.value })}
+                placeholder="your@email.com"
+                className="w-full bg-[#252542] border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                required
+              />
+            </div>
+
+            <div>
+              <label className="block text-gray-300 text-sm mb-1">Password / App Password</label>
+              <input
+                type="password"
+                value={credentials.password}
+                onChange={(e) => setCredentials({ ...credentials, password: e.target.value })}
+                placeholder="••••••••••••"
+                className="w-full bg-[#252542] border border-gray-600 rounded-lg px-4 py-3 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                required
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="w-full bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white font-medium py-3 rounded-lg flex items-center justify-center gap-2 transition-all"
+            >
+              <LogIn className="w-4 h-4" />
+              Sign In
+            </button>
+          </form>
+
+          <div className="mt-6 p-4 bg-[#252542] rounded-lg">
+            <h3 className="text-yellow-400 text-sm font-medium flex items-center gap-2 mb-2">
+              <AlertCircle className="w-4 h-4" />
+              Important Notes
+            </h3>
+            <ul className="text-gray-400 text-xs space-y-1">
+              <li>• Gmail: Use App Password (not regular password)</li>
+              <li>• ProtonMail: Requires Bridge app for SMTP</li>
+              <li>• Outlook/Yahoo: May need app-specific password</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <div className="h-full flex bg-[hsl(var(--os-window-body))]">
+    <div className="h-full flex bg-[#1a1a2e] text-white">
       {/* Sidebar */}
-      <div className="w-40 border-r border-border/20 flex flex-col shrink-0">
-        <button onClick={() => setComposing(true)} className="mx-2 mt-2 mb-1 px-3 py-2 bg-primary text-primary-foreground rounded-lg text-xs font-medium hover:bg-primary/90 flex items-center gap-1.5">
-          <Edit3 size={12} /> Compose
-        </button>
-        <div className="flex-1 py-1">
-          {FOLDERS.map(f => (
-            <button key={f.id} onClick={() => { setFolder(f.id); setSelected(null); }}
-              className={`w-full flex items-center gap-2 px-3 py-1.5 text-[11px] transition-colors ${folder === f.id ? 'bg-primary/10 text-primary font-medium' : 'text-muted-foreground hover:bg-muted/20'}`}>
-              <f.icon size={13} />
-              <span className="flex-1 text-left">{f.name}</span>
-              {f.count > 0 && <span className="text-[9px] px-1.5 py-0 rounded-full bg-primary/20 text-primary">{f.count}</span>}
+      <div className="w-56 bg-[#16162a] border-r border-gray-700 flex flex-col">
+        <div className="p-4 border-b border-gray-700">
+          <div className="flex items-center gap-2 text-sm">
+            <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-pink-500 rounded-full flex items-center justify-center text-xs font-bold">
+              {credentials.email[0]?.toUpperCase()}
+            </div>
+            <div className="flex-1 truncate">
+              <div className="font-medium truncate">{credentials.email}</div>
+            </div>
+          </div>
+        </div>
+
+        <nav className="flex-1 p-2">
+          {folders.map((folder) => (
+            <button
+              key={folder.id}
+              onClick={() => setActiveFolder(folder.id)}
+              className={`w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm transition-colors ${
+                activeFolder === folder.id
+                  ? 'bg-purple-600/30 text-purple-300'
+                  : 'text-gray-400 hover:bg-gray-700/50'
+              }`}
+            >
+              <folder.icon className="w-4 h-4" />
+              {folder.name}
             </button>
           ))}
-        </div>
-        <div className="px-3 py-2 text-[9px] text-muted-foreground border-t border-border/10">
-          scribe@proton.me
+        </nav>
+
+        <div className="p-2 border-t border-gray-700">
+          <button
+            onClick={handleLogout}
+            className="w-full flex items-center gap-3 px-3 py-2 rounded-lg text-sm text-gray-400 hover:bg-gray-700/50 transition-colors"
+          >
+            <LogOut className="w-4 h-4" />
+            Sign Out
+          </button>
         </div>
       </div>
 
-      {/* Email list */}
-      <div className="w-56 border-r border-border/20 flex flex-col shrink-0">
-        <div className="flex items-center gap-1 px-2 py-1.5 border-b border-border/10">
-          <Search size={10} className="text-muted-foreground" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search mail..." className="flex-1 bg-transparent text-[10px] outline-none text-foreground" />
-        </div>
-        <div className="flex-1 overflow-y-auto scrollbar-os">
-          {filtered.map(e => (
-            <button key={e.id} onClick={() => selectEmail(e.id)}
-              className={`w-full text-left px-3 py-2.5 border-b border-border/5 hover:bg-muted/20 transition-colors ${selected === e.id ? 'bg-primary/10' : ''} ${!e.read ? 'bg-muted/10' : ''}`}>
-              <div className="flex items-center gap-1">
-                <span className={`text-[11px] truncate flex-1 ${!e.read ? 'font-semibold text-foreground' : 'text-foreground/80'}`}>{e.from}</span>
-                <span className="text-[9px] text-muted-foreground shrink-0">{e.time}</span>
-              </div>
-              <div className={`text-[10px] truncate ${!e.read ? 'font-medium text-foreground' : 'text-muted-foreground'}`}>{e.subject}</div>
-              <div className="text-[9px] text-muted-foreground truncate">{e.preview}</div>
-            </button>
-          ))}
-          {filtered.length === 0 && <div className="text-center py-8 text-xs text-muted-foreground">No emails</div>}
-        </div>
-      </div>
-
-      {/* Email detail / Compose */}
+      {/* Main Content */}
       <div className="flex-1 flex flex-col">
-        {composing ? (
-          <div className="flex-1 flex flex-col p-3">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-foreground">New Message</span>
-              <button onClick={() => setComposing(false)} className="text-[10px] text-muted-foreground hover:text-foreground">Cancel</button>
+        {activeFolder === 'compose' ? (
+          <form onSubmit={handleSendEmail} className="flex-1 flex flex-col p-4">
+            <h2 className="text-lg font-semibold mb-4 flex items-center gap-2">
+              <Send className="w-5 h-5" />
+              Compose Email
+            </h2>
+
+            {status && (
+              <div className={`mb-4 p-3 rounded-lg flex items-center gap-2 ${
+                status.type === 'success' ? 'bg-green-600/20 text-green-400' : 'bg-red-600/20 text-red-400'
+              }`}>
+                {status.type === 'success' ? <CheckCircle className="w-4 h-4" /> : <AlertCircle className="w-4 h-4" />}
+                {status.message}
+              </div>
+            )}
+
+            <div className="space-y-3 flex-1">
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">To</label>
+                <input
+                  type="email"
+                  value={compose.to}
+                  onChange={(e) => setCompose({ ...compose, to: e.target.value })}
+                  placeholder="recipient@email.com"
+                  className="w-full bg-[#252542] border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                  required
+                />
+              </div>
+
+              <div>
+                <label className="block text-gray-400 text-sm mb-1">Subject</label>
+                <input
+                  type="text"
+                  value={compose.subject}
+                  onChange={(e) => setCompose({ ...compose, subject: e.target.value })}
+                  placeholder="Email subject"
+                  className="w-full bg-[#252542] border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500"
+                  required
+                />
+              </div>
+
+              <div className="flex-1">
+                <label className="block text-gray-400 text-sm mb-1">Message</label>
+                <textarea
+                  value={compose.body}
+                  onChange={(e) => setCompose({ ...compose, body: e.target.value })}
+                  placeholder="Write your message..."
+                  className="w-full h-48 bg-[#252542] border border-gray-600 rounded-lg px-4 py-2 text-white placeholder-gray-500 focus:outline-none focus:border-purple-500 resize-none"
+                  required
+                />
+              </div>
             </div>
-            <input placeholder="To:" className="bg-muted/20 rounded px-2 py-1.5 text-[11px] text-foreground outline-none mb-1" />
-            <input placeholder="Subject:" className="bg-muted/20 rounded px-2 py-1.5 text-[11px] text-foreground outline-none mb-1" />
-            <textarea placeholder="Compose email..." className="flex-1 bg-muted/20 rounded p-2 text-[11px] text-foreground outline-none resize-none" />
-            <div className="flex items-center justify-between mt-2">
-              <button className="p-1.5 rounded hover:bg-muted/30 text-muted-foreground"><Paperclip size={14} /></button>
-              <button className="px-4 py-1.5 bg-primary text-primary-foreground rounded text-xs hover:bg-primary/90 flex items-center gap-1"><Send size={11} /> Send</button>
+
+            <div className="mt-4">
+              <button
+                type="submit"
+                disabled={sending}
+                className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 disabled:opacity-50 text-white font-medium px-6 py-2 rounded-lg flex items-center gap-2 transition-all"
+              >
+                {sending ? (
+                  <>
+                    <div className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" />
+                    Sending...
+                  </>
+                ) : (
+                  <>
+                    <Send className="w-4 h-4" />
+                    Send Email
+                  </>
+                )}
+              </button>
             </div>
-          </div>
-        ) : active ? (
-          <div className="flex-1 flex flex-col">
-            <div className="px-4 py-3 border-b border-border/10">
-              <div className="text-sm font-semibold text-foreground">{active.subject}</div>
-              <div className="text-[11px] text-muted-foreground mt-0.5">From: {active.from} • {active.time}</div>
-            </div>
-            <div className="flex-1 overflow-y-auto scrollbar-os px-4 py-3">
-              <pre className="text-xs text-foreground whitespace-pre-wrap font-sans leading-relaxed">{active.body}</pre>
-            </div>
-            <div className="flex items-center gap-1 px-3 py-2 border-t border-border/10">
-              <button className="px-3 py-1 bg-secondary/30 rounded text-[10px] text-foreground hover:bg-secondary/50 flex items-center gap-1"><Reply size={10} /> Reply</button>
-              <button onClick={() => setEmails(p => p.map(e => e.id === active.id ? { ...e, starred: !e.starred } : e))}
-                className={`p-1 rounded hover:bg-muted/30 ${active.starred ? 'text-yellow-500' : 'text-muted-foreground'}`}><Star size={13} /></button>
-              <button onClick={() => { setEmails(p => p.map(e => e.id === active.id ? { ...e, folder: 'trash' } : e)); setSelected(null); }}
-                className="p-1 rounded hover:bg-destructive/20 text-muted-foreground"><Trash2 size={13} /></button>
-            </div>
-          </div>
+          </form>
         ) : (
-          <div className="flex-1 flex items-center justify-center text-muted-foreground">
+          <div className="flex-1 flex items-center justify-center text-gray-500">
             <div className="text-center">
-              <Mail size={32} className="mx-auto mb-2 opacity-30" />
-              <div className="text-xs">Select an email to read</div>
+              <Inbox className="w-16 h-16 mx-auto mb-4 opacity-30" />
+              <p>No emails in {activeFolder}</p>
+              <p className="text-sm mt-2">IMAP inbox sync not available</p>
             </div>
           </div>
         )}
       </div>
     </div>
   );
-}
+};
+
+export default EmailClientApp;
