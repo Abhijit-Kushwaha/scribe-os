@@ -63,7 +63,7 @@ export default function LockScreen({ onUnlock }: Props) {
       className="fixed inset-0 flex flex-col items-center justify-center select-none"
       style={{ zIndex: 99998, background: 'linear-gradient(135deg, hsl(210 20% 6%) 0%, hsl(210 25% 12%) 50%, hsl(174 30% 8%) 100%)' }}
     >
-      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,hsla(174,60%,30%,0.08),transparent_70%)]" />
+      <div className="absolute inset-0 bg-[radial-gradient(circle_at_50%_30%,hsla(174,60%,30%,0.08),transparent_70%)] pointer-events-none" />
       
       {/* Avatar */}
       <div className="w-20 h-20 rounded-full bg-secondary/50 border-2 border-primary/30 flex items-center justify-center mb-4 os-glow">
