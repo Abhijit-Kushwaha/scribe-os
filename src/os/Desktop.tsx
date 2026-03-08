@@ -7,7 +7,17 @@ import DesktopIcon from './DesktopIcon';
 import DesktopContextMenu, { useDesktopContextMenu } from './DesktopContextMenu';
 import wallpaper from '@/assets/wallpaper.jpg';
 
-const DESKTOP_APPS = ['terminal', 'cmd', 'files', 'notepad', 'code', 'browser', 'tor', 'vpn', 'adblock', 'taskmanager', 'settings', 'aichat'];
+const DESKTOP_APPS = [
+  'browser', 'tor', 'email',
+  'terminal', 'cmd', 'files',
+  'notepad', 'code', 'notes',
+  'music', 'video', 'images',
+  'calculator', 'spreadsheet',
+  'vpn', 'adblock', 'passwords',
+  'weather', 'network', 'keyboard',
+  'taskmanager', 'settings',
+  'games', 'aichat', 'recycle',
+];
 
 export default function Desktop() {
   const { windows, openWindow } = useOS();
@@ -23,6 +33,7 @@ export default function Desktop() {
       <div className="absolute top-4 left-4 bottom-14 overflow-y-auto flex flex-col gap-1 z-10 scrollbar-os" data-no-ctx>
         {DESKTOP_APPS.map(appId => {
           const app = APP_REGISTRY.find(a => a.id === appId)!;
+          if (!app) return null;
           return (
             <DesktopIcon
               key={app.id}
