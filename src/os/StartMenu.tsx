@@ -17,7 +17,7 @@ const CATEGORIES = [
 ];
 
 export default function StartMenu({ onClose }: Props) {
-  const { openWindow, settings } = useOS();
+  const { openWindow, settings, onSleep, onRestart, onShutdown } = useOS();
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState('all');
   const [showPower, setShowPower] = useState(false);
@@ -120,13 +120,13 @@ export default function StartMenu({ onClose }: Props) {
             </button>
             {showPower && (
               <div className="absolute bottom-full right-0 mb-1 w-36 os-glass rounded-lg py-1 os-window-shadow">
-                <button className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-muted-foreground hover:bg-muted/30 hover:text-foreground">
+                <button onClick={() => { onSleep?.(); onClose(); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-muted-foreground hover:bg-muted/30 hover:text-foreground">
                   <Moon size={12} /> Sleep
                 </button>
-                <button className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-muted-foreground hover:bg-muted/30 hover:text-foreground">
+                <button onClick={() => { onRestart?.(); onClose(); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-muted-foreground hover:bg-muted/30 hover:text-foreground">
                   <RotateCcw size={12} /> Restart
                 </button>
-                <button className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-destructive hover:bg-destructive/10">
+                <button onClick={() => { onShutdown?.(); onClose(); }} className="w-full flex items-center gap-2 px-3 py-1.5 text-[11px] text-destructive hover:bg-destructive/10">
                   <LogOut size={12} /> Shut Down
                 </button>
               </div>

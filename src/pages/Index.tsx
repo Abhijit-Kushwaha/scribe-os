@@ -5,24 +5,12 @@ import Desktop from '@/os/Desktop';
 import BootScreen from '@/os/BootScreen';
 import LockScreen from '@/os/LockScreen';
 
-function OSContent() {
+function OSContent({ onSleep, onRestart, onShutdown }: { onSleep: () => void; onRestart: () => void; onShutdown: () => void }) {
   const [booted, setBooted] = useState(false);
   const [locked, setLocked] = useState(true);
-  const [shutdown, setShutdown] = useState(false);
   const { settings } = useOS();
   const handleBootComplete = useCallback(() => setBooted(true), []);
   const handleUnlock = useCallback(() => setLocked(false), []);
-
-  if (shutdown) {
-    return (
-      <div className="w-screen h-screen bg-black flex items-center justify-center">
-        <div className="text-center animate-pulse">
-          <div className="text-foreground text-sm mb-2">Shutting down...</div>
-          <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
-        </div>
-      </div>
-    );
-  }
 
   return (
     <>
@@ -34,10 +22,52 @@ function OSContent() {
 }
 
 const Index = () => {
+  const [phase, setPhase] = useState<'running' | 'shutdown' | 'restart'>('running');
+  const [key, setKey] = useState(0);
+
+  const handleSleep = useCallback(() => {
+    // Re-render with lock screen by incrementing key
+    setKey(k => k + 1);
+  }, []);
+
+  const handleRestart = useCallback(() => {
+    setPhase('restart');
+    setTimeout(() => {
+      setPhase('running');
+      setKey(k => k + 1);
+    }, 2000);
+  }, []);
+
+  const handleShutdown = useCallback(() => {
+    setPhase('shutdown');
+  }, []);
+
+  if (phase === 'shutdown') {
+    return (
+      <div className="w-screen h-screen bg-black flex items-center justify-center">
+        <div className="text-center animate-pulse">
+          <div className="text-foreground text-sm mb-2">Shutting down...</div>
+          <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
+        </div>
+      </div>
+    );
+  }
+
+  if (phase === 'restart') {
+    return (
+      <div className="w-screen h-screen bg-black flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-foreground text-sm mb-2">Restarting...</div>
+          <div className="w-8 h-8 border-2 border-primary/30 border-t-primary rounded-full animate-spin mx-auto" />
+        </div>
+      </div>
+    );
+  }
+
   return (
-    <OSProvider>
+    <OSProvider key={key} onSleep={handleSleep} onRestart={handleRestart} onShutdown={handleShutdown}>
       <NotificationProvider>
-        <OSContent />
+        <OSContent onSleep={handleSleep} onRestart={handleRestart} onShutdown={handleShutdown} />
       </NotificationProvider>
     </OSProvider>
   );
