@@ -51,27 +51,31 @@ const GROUP_COLORS = [
   { name: 'Cyan', bg: 'bg-cyan-500/20', border: 'border-cyan-500', text: 'text-cyan-400', dot: 'bg-cyan-500' },
 ];
 
+// Sites that allow iframe embedding
 const BOOKMARKS = [
-  { name: 'Google', url: 'https://google.com', icon: '🔍' },
-  { name: 'YouTube', url: 'https://youtube.com', icon: '▶️' },
-  { name: 'Gmail', url: 'https://gmail.com', icon: '📧' },
-  { name: 'Drive', url: 'https://drive.google.com', icon: '💾' },
-  { name: 'GitHub', url: 'https://github.com', icon: '🐙' },
-  { name: 'ChatGPT', url: 'https://chatgpt.com', icon: '🤖' },
-  { name: 'Reddit', url: 'https://reddit.com', icon: '🟠' },
-  { name: 'Stack Overflow', url: 'https://stackoverflow.com', icon: '📚' },
+  { name: 'Wikipedia', url: 'https://en.wikipedia.org', icon: '📖' },
+  { name: 'Bing', url: 'https://bing.com', icon: '🔍' },
+  { name: 'DuckDuckGo', url: 'https://duckduckgo.com', icon: '🦆' },
+  { name: 'Archive.org', url: 'https://archive.org', icon: '📚' },
+  { name: 'MDN Docs', url: 'https://developer.mozilla.org', icon: '📘' },
+  { name: 'W3Schools', url: 'https://w3schools.com', icon: '🎓' },
+  { name: 'Example.com', url: 'https://example.com', icon: '🌐' },
+  { name: 'httpbin', url: 'https://httpbin.org', icon: '🔧' },
 ];
 
 const SUGGESTED_SITES = [
-  { name: 'Google', url: 'https://google.com', icon: '🔍' },
-  { name: 'YouTube', url: 'https://youtube.com', icon: '▶️' },
-  { name: 'Gmail', url: 'https://gmail.com', icon: '📧' },
-  { name: 'GitHub', url: 'https://github.com', icon: '🐙' },
-  { name: 'Reddit', url: 'https://reddit.com', icon: '🟠' },
-  { name: 'Twitter/X', url: 'https://x.com', icon: '🐦' },
-  { name: 'ChatGPT', url: 'https://chatgpt.com', icon: '🤖' },
-  { name: 'Stack Overflow', url: 'https://stackoverflow.com', icon: '📚' },
+  { name: 'Wikipedia', url: 'https://en.wikipedia.org', icon: '📖' },
+  { name: 'Bing', url: 'https://bing.com', icon: '🔍' },
+  { name: 'DuckDuckGo', url: 'https://duckduckgo.com', icon: '🦆' },
+  { name: 'Archive.org', url: 'https://archive.org', icon: '📚' },
+  { name: 'MDN Docs', url: 'https://developer.mozilla.org', icon: '📘' },
+  { name: 'W3Schools', url: 'https://w3schools.com', icon: '🎓' },
+  { name: 'Example.com', url: 'https://example.com', icon: '🌐' },
+  { name: 'httpbin', url: 'https://httpbin.org', icon: '🔧' },
 ];
+
+// Sites known to block iframes (will show warning)
+const BLOCKED_DOMAINS = ['youtube.com', 'google.com', 'gmail.com', 'github.com', 'reddit.com', 'twitter.com', 'x.com', 'facebook.com', 'instagram.com', 'chatgpt.com', 'openai.com', 'linkedin.com', 'netflix.com', 'amazon.com'];
 
 const uid = () => Math.random().toString(36).slice(2, 9);
 
