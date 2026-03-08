@@ -536,9 +536,11 @@ function ActivityBar({ active, onSelect }: { active: string; onSelect: (id: stri
   );
 }
 
-function FileTreeItem({ node, depth, onSelect, selectedPath, onToggle, onDelete, onNewFile, onNewFolder }: {
+function FileTreeItem({ node, depth, onSelect, selectedPath, onToggle, onDelete, onNewFile, onNewFolder, newItemState, onNewItemSubmit, onNewItemCancel }: {
   node: TreeNode; depth: number; onSelect: (file: VFile) => void; selectedPath: string; onToggle: (path: string) => void;
   onDelete: (path: string) => void; onNewFile: (folderPath: string) => void; onNewFolder: (folderPath: string) => void;
+  newItemState: { folderPath: string; type: 'file' | 'folder' } | null;
+  onNewItemSubmit: (name: string) => void; onNewItemCancel: () => void;
 }) {
   const [showCtx, setShowCtx] = useState(false);
   const [ctxPos, setCtxPos] = useState({ x: 0, y: 0 });
