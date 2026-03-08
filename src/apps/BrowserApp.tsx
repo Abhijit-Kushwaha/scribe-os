@@ -635,6 +635,27 @@ export default function BrowserApp({ windowId }: { windowId: string }) {
               ))}
             </div>
           </div>
+        ) : BLOCKED_DOMAINS.some(d => current?.url?.includes(d)) ? (
+          /* Blocked site warning */
+          <div className="h-full flex flex-col items-center justify-center bg-[hsl(var(--os-window-body))] p-8 text-center">
+            <div className="w-16 h-16 rounded-full bg-destructive/10 flex items-center justify-center mb-4">
+              <Shield size={28} className="text-destructive" />
+            </div>
+            <div className="text-lg font-semibold text-foreground mb-2">Site blocked iframe embedding</div>
+            <div className="text-sm text-muted-foreground mb-4 max-w-md">
+              <span className="font-mono text-primary">{current?.url}</span> has security policies that prevent embedding in iframes.
+            </div>
+            <div className="text-xs text-muted-foreground mb-4">
+              Try sites like Wikipedia, Bing, DuckDuckGo, or Archive.org that allow embedding.
+            </div>
+            <button
+              onClick={() => window.open(current?.url, '_blank')}
+              className="px-4 py-2 bg-primary text-primary-foreground rounded-lg text-sm hover:bg-primary/90 flex items-center gap-2"
+            >
+              <ExternalLink size={14} />
+              Open in new window
+            </button>
+          </div>
         ) : (
           /* Iframe Content */
           <iframe
