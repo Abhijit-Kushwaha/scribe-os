@@ -614,6 +614,28 @@ function FileTreeItem({ node, depth, onSelect, selectedPath, onToggle, onDelete,
   );
 }
 
+function NewItemInput({ type, depth, onSubmit, onCancel }: { type: 'file' | 'folder'; depth: number; onSubmit: (name: string) => void; onCancel: () => void }) {
+  const [value, setValue] = useState('');
+  const inputRef = useRef<HTMLInputElement>(null);
+  useEffect(() => { inputRef.current?.focus(); }, []);
+  return (
+    <div className="flex items-center gap-1 py-[2px] pr-2" style={{ paddingLeft: depth * 12 + (type === 'file' ? 22 : 4) }}>
+      {type === 'folder' ? <Folder size={15} className="text-yellow-600/70 shrink-0" /> : <FileCode size={15} className="text-gray-400 shrink-0" />}
+      <input
+        ref={inputRef}
+        value={value}
+        onChange={e => setValue(e.target.value)}
+        onKeyDown={e => {
+          if (e.key === 'Enter' && value.trim()) onSubmit(value.trim());
+          if (e.key === 'Escape') onCancel();
+        }}
+        onBlur={() => { if (value.trim()) onSubmit(value.trim()); else onCancel(); }}
+        className="flex-1 bg-[#3c3c3c] border border-[#007acc] rounded px-1 py-0 text-[13px] text-gray-200 outline-none"
+      />
+    </div>
+  );
+}
+
 function Sidebar({ tree, onSelect, selectedPath, onToggle, sidebarPanel, onDelete, onNewFile, onNewFolder, newItemState, onNewItemSubmit, onNewItemCancel }: {
   tree: VFolder; onSelect: (file: VFile) => void; selectedPath: string; onToggle: (path: string) => void; sidebarPanel: string;
   onDelete: (path: string) => void; onNewFile: (folderPath: string) => void; onNewFolder: (folderPath: string) => void;
