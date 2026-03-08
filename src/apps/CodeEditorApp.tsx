@@ -833,7 +833,123 @@ function Minimap({ lines, scrollPercent }: { lines: string[]; scrollPercent: num
   );
 }
 
-function FindReplaceWidget({ content, onChange, onClose, textareaRef }: {
+// ─── Command Palette ─────────────────────────────────────────────────
+
+interface PaletteCommand {
+  id: string;
+  label: string;
+  shortcut?: string;
+  category: string;
+  action: () => void;
+}
+
+function CommandPalette({ commands, onClose }: { commands: PaletteCommand[]; onClose: () => void }) {
+  const [query, setQuery] = useState('');
+  const [selectedIdx, setSelectedIdx] = useState(0);
+  const inputRef = useRef<HTMLInputElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => { inputRef.current?.focus(); }, []);
+
+  const filtered = useMemo(() => {
+    if (!query.trim()) return commands;
+    const q = query.toLowerCase();
+    return commands.filter(cmd => {
+      const text = `${cmd.category} ${cmd.label}`.toLowerCase();
+      // fuzzy: all query chars must appear in order
+      let qi = 0;
+      for (let i = 0; i < text.length && qi < q.length; i++) {
+        if (text[i] === q[qi]) qi++;
+      }
+      return qi === q.length;
+    }).sort((a, b) => {
+      const aExact = a.label.toLowerCase().includes(q) ? 0 : 1;
+      const bExact = b.label.toLowerCase().includes(q) ? 0 : 1;
+      return aExact - bExact;
+    });
+  }, [query, commands]);
+
+  useEffect(() => { setSelectedIdx(0); }, [query]);
+
+  useEffect(() => {
+    const el = listRef.current?.children[selectedIdx] as HTMLElement;
+    if (el) el.scrollIntoView({ block: 'nearest' });
+  }, [selectedIdx]);
+
+  const execute = (cmd: PaletteCommand) => {
+    onClose();
+    cmd.action();
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent) => {
+    if (e.key === 'Escape') { onClose(); return; }
+    if (e.key === 'ArrowDown') { e.preventDefault(); setSelectedIdx(i => Math.min(i + 1, filtered.length - 1)); return; }
+    if (e.key === 'ArrowUp') { e.preventDefault(); setSelectedIdx(i => Math.max(i - 1, 0)); return; }
+    if (e.key === 'Enter' && filtered[selectedIdx]) { execute(filtered[selectedIdx]); return; }
+  };
+
+  // Highlight matching chars
+  const highlight = (text: string) => {
+    if (!query.trim()) return <span>{text}</span>;
+    const q = query.toLowerCase();
+    const result: React.ReactNode[] = [];
+    let qi = 0;
+    for (let i = 0; i < text.length; i++) {
+      if (qi < q.length && text[i].toLowerCase() === q[qi]) {
+        result.push(<span key={i} className="text-[#ffcc00] font-semibold">{text[i]}</span>);
+        qi++;
+      } else {
+        result.push(<span key={i}>{text[i]}</span>);
+      }
+    }
+    return <>{result}</>;
+  };
+
+  return (
+    <div className="absolute inset-0 z-[9999] flex justify-center" onClick={onClose}>
+      <div
+        className="mt-0 w-[500px] max-h-[350px] bg-[#252526] border border-[#454545] rounded-b-lg shadow-2xl flex flex-col overflow-hidden"
+        onClick={e => e.stopPropagation()}
+      >
+        <div className="flex items-center px-3 py-2 border-b border-[#454545]">
+          <span className="text-gray-400 mr-2 text-[13px]">{'>'}</span>
+          <input
+            ref={inputRef}
+            value={query}
+            onChange={e => setQuery(e.target.value)}
+            onKeyDown={handleKeyDown}
+            placeholder="Type a command..."
+            className="flex-1 bg-transparent text-[13px] text-gray-200 outline-none placeholder:text-gray-500"
+          />
+        </div>
+        <div ref={listRef} className="flex-1 overflow-y-auto scrollbar-os">
+          {filtered.length === 0 && (
+            <div className="px-3 py-4 text-center text-[12px] text-gray-500">No commands found</div>
+          )}
+          {filtered.map((cmd, i) => (
+            <button
+              key={cmd.id}
+              onMouseEnter={() => setSelectedIdx(i)}
+              onClick={() => execute(cmd)}
+              className={`w-full flex items-center justify-between px-3 py-1.5 text-[13px] transition-colors ${
+                i === selectedIdx ? 'bg-[#094771] text-white' : 'text-gray-300 hover:bg-[#2a2d2e]'
+              }`}
+            >
+              <div className="flex items-center gap-2 min-w-0">
+                <span className="text-[11px] text-gray-500 shrink-0 w-16 text-right">{cmd.category}</span>
+                <span className="truncate">{highlight(cmd.label)}</span>
+              </div>
+              {cmd.shortcut && (
+                <kbd className="text-[11px] text-gray-500 bg-[#333] rounded px-1.5 py-0.5 ml-2 shrink-0">{cmd.shortcut}</kbd>
+              )}
+            </button>
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
   content: string; onChange: (content: string) => void; onClose: () => void;
   textareaRef: React.RefObject<HTMLTextAreaElement>;
 }) {
