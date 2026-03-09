@@ -1,0 +1,4 @@
+requests
+supabase
+google-generativeai
+scapy
