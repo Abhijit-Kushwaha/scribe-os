@@ -122,7 +122,7 @@ export default function App() {
   const [selectedPacket, setSelectedPacket] = useState<any>(null);
 
   const handleLogin = (pass: string) => {
-    if (pass === "ADMIN_PREDATOR_2026") {
+    if (pass === "0000") {
       setIsAuthenticated(true);
       localStorage.setItem("predator_auth", "true"); // Save session
     } else {
