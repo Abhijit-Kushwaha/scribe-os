@@ -5,6 +5,7 @@ import {
   ExternalLink, Pause, Play, Trash2, FileText, Zap, Eye, EyeOff, ShieldCheck
 } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
+import { browserService } from '@/services/browserService';
 
 /* ─── Types ─── */
 interface Tab {
@@ -117,6 +118,7 @@ export default function BrowserApp({ windowId }: { windowId: string }) {
   const [shieldsUp, setShieldsUp] = useState(true);
   const [tabSearch, setTabSearch] = useState('');
   const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [bookmarks, setBookmarks] = useState<Array<{ name: string; url: string; icon: string; id?: string }>>([]);
   const [downloads, setDownloads] = useState<DownloadItem[]>([
     { id: '1', name: 'brave-browser-1.73.97-linux-amd64.deb', url: 'https://brave.com', size: '128.4 MB', progress: 67, status: 'downloading', startedAt: Date.now() - 120000 },
     { id: '2', name: 'node-v22.0.0.pkg', url: 'https://nodejs.org', size: '42.1 MB', progress: 100, status: 'complete', startedAt: Date.now() - 300000 },
@@ -125,6 +127,18 @@ export default function BrowserApp({ windowId }: { windowId: string }) {
   const urlRef = useRef<HTMLInputElement>(null);
   const stats = useShieldStats();
   const iframeRef = useRef<HTMLIFrameElement>(null);
+
+  useEffect(() => {
+    const loadHistoryAndBookmarks = async () => {
+      const dbHistory = await browserService.getHistory();
+      if (dbHistory.length > 0) {
+        setHistory(dbHistory.map(h => ({ url: h.url, title: h.title, time: h.visitedAt || 0 })));
+      }
+      const dbBookmarks = await browserService.getBookmarks();
+      setBookmarks(dbBookmarks);
+    };
+    loadHistoryAndBookmarks();
+  }, []);
 
   const current = tabs.find(t => t.id === activeTab) || tabs[0];
 
@@ -193,6 +207,8 @@ export default function BrowserApp({ windowId }: { windowId: string }) {
     setTabs(prev => prev.map(t => t.id === tId ? {
       ...t, loading: false, title: pageTitle, htmlContent: result.html, error: result.error,
     } : t));
+
+    await browserService.addToHistory({ url: finalUrl, title: pageTitle });
   }, [activeTab]);
 
   const goBack = useCallback(() => {
@@ -217,6 +233,24 @@ export default function BrowserApp({ windowId }: { windowId: string }) {
       if (activeTab === id && next.length > 0) setActiveTab(next[next.length - 1].id);
       return next.length > 0 ? next : [newTab()];
     });
+  };
+
+  const addBookmark = async () => {
+    if (!current?.url) return;
+    const newBookmark = await browserService.addBookmark({
+      name: current.title || 'Bookmark',
+      url: current.url,
+      icon: current.favicon,
+    });
+    if (newBookmark) {
+      setBookmarks(prev => [...prev, { ...newBookmark, name: newBookmark.name, url: newBookmark.url, icon: newBookmark.icon || '🌐' }]);
+    }
+  };
+
+  const removeBookmark = async (id: string | undefined) => {
+    if (!id) return;
+    await browserService.deleteBookmark(id);
+    setBookmarks(prev => prev.filter(b => b.id !== id));
   };
 
   const createGroup = (tabId: string) => {
@@ -330,7 +364,7 @@ export default function BrowserApp({ windowId }: { windowId: string }) {
             onFocus={e => e.target.select()}
             placeholder="Search Brave or type a URL"
             className="flex-1 bg-transparent text-[12px] outline-none text-foreground placeholder:text-muted-foreground" />
-          <button className="p-0.5 hover:bg-muted/50 rounded text-muted-foreground"><Star size={12} /></button>
+          <button onClick={addBookmark} disabled={!current?.url} className="p-0.5 hover:bg-muted/50 rounded text-muted-foreground disabled:opacity-30 transition-opacity"><Star size={12} /></button>
         </div>
 
         <button onClick={e => { e.stopPropagation(); setShowShields(!showShields); setShowDownloads(false); setShowHistory(false); setShowMenu(false); }}
@@ -347,8 +381,19 @@ export default function BrowserApp({ windowId }: { windowId: string }) {
       </div>
 
       {/* Bookmarks Bar */}
-      <div className="flex items-center gap-0.5 px-3 py-1 bg-secondary/5 border-b border-border/10 overflow-x-auto">
-        {BOOKMARKS.map(bm => (
+      <div className="flex items-center gap-0.5 px-3 py-1 bg-secondary/5 border-b border-border/10 overflow-x-auto scrollbar-os">
+        {bookmarks.length > 0 ? bookmarks.map(bm => (
+          <div key={bm.id || bm.url} className="group relative shrink-0">
+            <button onClick={() => navigate(bm.url)}
+              className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] text-muted-foreground hover:bg-muted/40 whitespace-nowrap transition-colors">
+              <span className="text-[10px]">{bm.icon}</span><span>{bm.name}</span>
+            </button>
+            <button onClick={() => removeBookmark(bm.id)}
+              className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 p-0.5 rounded bg-destructive/20 hover:bg-destructive/40 transition-all">
+              <X size={10} className="text-destructive" />
+            </button>
+          </div>
+        )) : BOOKMARKS.map(bm => (
           <button key={bm.url} onClick={() => navigate(bm.url)}
             className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] text-muted-foreground hover:bg-muted/40 whitespace-nowrap shrink-0 transition-colors">
             <span className="text-[10px]">{bm.icon}</span><span>{bm.name}</span>

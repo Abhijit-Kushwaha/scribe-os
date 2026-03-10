@@ -1,49 +1,78 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Search, Trash2, Pin, Tag, FileText } from 'lucide-react';
+import { Plus, Search, Trash2, Pin, FileText, Palette } from 'lucide-react';
+import { notesService } from '@/services/notesService';
 
 interface Note {
   id: string;
   title: string;
   content: string;
+  color: string;
   pinned: boolean;
-  tags: string[];
-  modified: number;
+  createdAt: number;
+  updatedAt: number;
 }
 
 const DEFAULT_NOTES: Note[] = [
-  { id: '1', title: 'Pentest Checklist', content: '# Pentest Checklist\n\n- [ ] Nmap scan\n- [ ] Nikto web scan\n- [ ] SQLMap injection test\n- [x] Recon phase complete\n- [ ] Report generation', pinned: true, tags: ['security'], modified: Date.now() - 3600000 },
-  { id: '2', title: 'Project Ideas', content: '## Ideas\n\n1. Browser-based OS\n2. AI-powered code editor\n3. Decentralized chat app', pinned: false, tags: ['dev'], modified: Date.now() - 7200000 },
-  { id: '3', title: 'Quick Note', content: 'Remember to update dependencies this week.', pinned: false, tags: [], modified: Date.now() - 86400000 },
+  { id: '1', title: 'Welcome to Notes', content: 'Click the + button to create a new note.\n\nYour notes are automatically saved to the cloud.', color: 'blue', pinned: true, createdAt: Date.now(), updatedAt: Date.now() },
 ];
 
-const uid = () => Math.random().toString(36).slice(2, 9);
+const COLORS = ['blue', 'green', 'yellow', 'red', 'purple', 'pink', 'teal'];
+const COLOR_MAP: Record<string, string> = {
+  blue: 'bg-blue-500/20 border-blue-500/50',
+  green: 'bg-green-500/20 border-green-500/50',
+  yellow: 'bg-yellow-500/20 border-yellow-500/50',
+  red: 'bg-red-500/20 border-red-500/50',
+  purple: 'bg-fuchsia-500/20 border-fuchsia-500/50',
+  pink: 'bg-pink-500/20 border-pink-500/50',
+  teal: 'bg-teal-500/20 border-teal-500/50',
+};
 
 export default function NotesApp({ windowId }: { windowId: string }) {
-  const [notes, setNotes] = useState<Note[]>(() => {
-    try { const s = localStorage.getItem('scribe-notes'); return s ? JSON.parse(s) : DEFAULT_NOTES; } catch { return DEFAULT_NOTES; }
-  });
+  const [notes, setNotes] = useState<Note[]>(DEFAULT_NOTES);
   const [activeId, setActiveId] = useState(notes[0]?.id || '');
   const [search, setSearch] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [showColorPicker, setShowColorPicker] = useState(false);
 
-  useEffect(() => { localStorage.setItem('scribe-notes', JSON.stringify(notes)); }, [notes]);
+  useEffect(() => {
+    const loadNotes = async () => {
+      setLoading(true);
+      const dbNotes = await notesService.getNotes();
+      if (dbNotes.length > 0) {
+        setNotes(dbNotes);
+        if (!activeId) setActiveId(dbNotes[0].id);
+      }
+      setLoading(false);
+    };
+    loadNotes();
+  }, []);
 
   const active = notes.find(n => n.id === activeId);
-  const sorted = [...notes].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || b.modified - a.modified);
+  const sorted = [...notes].sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || b.updatedAt - a.updatedAt);
   const filtered = search ? sorted.filter(n => n.title.toLowerCase().includes(search.toLowerCase()) || n.content.toLowerCase().includes(search.toLowerCase())) : sorted;
 
-  const addNote = () => {
-    const n: Note = { id: uid(), title: 'Untitled', content: '', pinned: false, tags: [], modified: Date.now() };
-    setNotes(p => [n, ...p]);
-    setActiveId(n.id);
+  const addNote = async () => {
+    const newNote = await notesService.createNote('Untitled');
+    if (newNote) {
+      setNotes(p => [newNote, ...p]);
+      setActiveId(newNote.id);
+    }
   };
 
-  const updateNote = (id: string, updates: Partial<Note>) => {
-    setNotes(p => p.map(n => n.id === id ? { ...n, ...updates, modified: Date.now() } : n));
+  const updateNote = async (id: string, updates: Partial<Note>) => {
+    await notesService.updateNote(id, updates);
+    setNotes(p => p.map(n => n.id === id ? { ...n, ...updates } : n));
   };
 
-  const deleteNote = (id: string) => {
+  const deleteNote = async (id: string) => {
+    await notesService.deleteNote(id);
     setNotes(p => p.filter(n => n.id !== id));
     if (activeId === id) setActiveId(notes.find(n => n.id !== id)?.id || '');
+  };
+
+  const togglePin = async (id: string, pinned: boolean) => {
+    await notesService.togglePin(id, !pinned);
+    setNotes(p => p.map(n => n.id === id ? { ...n, pinned: !pinned } : n));
   };
 
   return (
@@ -63,12 +92,12 @@ export default function NotesApp({ windowId }: { windowId: string }) {
               className={`w-full text-left px-3 py-2 border-b border-border/5 hover:bg-muted/20 transition-colors ${n.id === activeId ? 'bg-primary/10 border-l-2 border-l-primary' : ''}`}>
               <div className="flex items-center gap-1">
                 {n.pinned && <Pin size={8} className="text-primary" />}
+                <div className={`w-2 h-2 rounded-full ${COLOR_MAP[n.color]?.split(' ')[0] || 'bg-blue-500'}`} />
                 <span className="text-[11px] text-foreground truncate flex-1 font-medium">{n.title}</span>
               </div>
               <div className="text-[9px] text-muted-foreground truncate mt-0.5">{n.content.slice(0, 60)}</div>
               <div className="flex items-center gap-1 mt-1">
-                {n.tags.map(t => <span key={t} className="text-[8px] px-1 py-0 rounded bg-primary/10 text-primary">{t}</span>)}
-                <span className="text-[8px] text-muted-foreground/50 ml-auto">{new Date(n.modified).toLocaleDateString()}</span>
+                <span className="text-[8px] text-muted-foreground/50 ml-auto">{new Date(n.updatedAt).toLocaleDateString()}</span>
               </div>
             </button>
           ))}
@@ -77,13 +106,33 @@ export default function NotesApp({ windowId }: { windowId: string }) {
       </div>
 
       {/* Editor */}
-      <div className="flex-1 flex flex-col">
+      <div className="flex-1 flex flex-col" style={active ? { backgroundColor: `hsla(var(--color-${active.color}), 0.05)` } : {}}>
         {active ? (
           <>
             <div className="flex items-center gap-2 px-3 py-2 border-b border-border/10">
               <input value={active.title} onChange={e => updateNote(active.id, { title: e.target.value })}
                 className="flex-1 bg-transparent text-sm font-semibold text-foreground outline-none" />
-              <button onClick={() => updateNote(active.id, { pinned: !active.pinned })}
+              <div className="relative">
+                <button onClick={() => setShowColorPicker(!showColorPicker)}
+                  className="p-1 rounded hover:bg-muted/30 text-muted-foreground">
+                  <Palette size={12} />
+                </button>
+                {showColorPicker && (
+                  <div className="absolute right-0 top-full mt-1 bg-popover border border-border rounded-lg shadow-lg p-2 grid grid-cols-4 gap-2 z-50">
+                    {COLORS.map(color => (
+                      <button
+                        key={color}
+                        onClick={() => {
+                          updateNote(active.id, { color });
+                          setShowColorPicker(false);
+                        }}
+                        className={`w-6 h-6 rounded border-2 transition-all ${COLOR_MAP[color]} ${active.color === color ? 'border-foreground' : 'border-transparent'}`}
+                      />
+                    ))}
+                  </div>
+                )}
+              </div>
+              <button onClick={() => togglePin(active.id, active.pinned)}
                 className={`p-1 rounded hover:bg-muted/30 ${active.pinned ? 'text-primary' : 'text-muted-foreground'}`}>
                 <Pin size={12} />
               </button>

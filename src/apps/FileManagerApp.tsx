@@ -108,14 +108,14 @@ export default function FileManagerApp() {
       {/* Main content */}
       <div className="flex-1 flex flex-col min-w-0">
         {/* Toolbar */}
-        <div className="flex items-center gap-1 px-2 py-1.5 bg-secondary/10 border-b border-border/20 shrink-0">
-          <button onClick={goBack} disabled={historyIdx <= 0} className="p-1 rounded hover:bg-muted/50 text-muted-foreground disabled:opacity-30">
+        <div className="flex items-center gap-1.5 px-3 py-2 bg-gradient-to-r from-secondary/20 to-secondary/10 border-b border-border/20 shrink-0">
+          <button onClick={goBack} disabled={historyIdx <= 0} className="p-1.5 rounded-lg hover:bg-secondary/40 text-muted-foreground disabled:opacity-30 transition-all active:scale-95">
             <ArrowLeft size={14} />
           </button>
-          <button onClick={goForward} disabled={historyIdx >= history.length - 1} className="p-1 rounded hover:bg-muted/50 text-muted-foreground disabled:opacity-30">
+          <button onClick={goForward} disabled={historyIdx >= history.length - 1} className="p-1.5 rounded-lg hover:bg-secondary/40 text-muted-foreground disabled:opacity-30 transition-all active:scale-95">
             <ArrowRight size={14} />
           </button>
-          <button onClick={goUp} className="p-1 rounded hover:bg-muted/50 text-muted-foreground">
+          <button onClick={goUp} className="p-1.5 rounded-lg hover:bg-secondary/40 text-muted-foreground transition-all active:scale-95">
             <ArrowLeft size={14} className="rotate-90" />
           </button>
 
@@ -170,25 +170,25 @@ export default function FileManagerApp() {
           )}
 
           {viewMode === 'grid' ? (
-            <div className="grid grid-cols-5 gap-1">
+            <div className="grid grid-cols-5 gap-2">
               {filteredItems.map((item: FileNode) => (
                 <button
                   key={item.name}
-                  className={`flex flex-col items-center gap-1 p-3 rounded-lg transition-colors ${
-                    selected === item.name ? 'bg-primary/15 ring-1 ring-primary/30' : 'hover:bg-muted/20'
+                  className={`flex flex-col items-center gap-2 p-3 rounded-xl transition-all duration-200 ${
+                    selected === item.name ? 'bg-primary/20 ring-1 ring-primary/50 shadow-sm' : 'hover:bg-muted/30 hover:shadow-sm'
                   }`}
                   onClick={() => setSelected(item.name)}
                   onDoubleClick={() => item.type === 'folder' && navigateTo(`${path}/${item.name}`)}
                 >
                   {getIcon(item)}
-                  <span className="text-[10px] text-foreground text-center truncate w-full">{item.name}</span>
+                  <span className="text-[10px] text-foreground text-center truncate w-full font-medium">{item.name}</span>
                 </button>
               ))}
             </div>
           ) : (
             <div>
               {/* Header */}
-              <div className="flex items-center gap-3 px-3 py-1 text-[9px] text-muted-foreground font-medium border-b border-border/10">
+              <div className="flex items-center gap-3 px-3 py-2 text-[9px] text-muted-foreground font-semibold border-b border-border/20 bg-secondary/5 sticky top-0">
                 <span className="flex-1">Name</span>
                 <span className="w-16 text-right">Size</span>
                 <span className="w-24 text-right">Modified</span>
@@ -197,14 +197,14 @@ export default function FileManagerApp() {
               {filteredItems.map((item: FileNode) => (
                 <div
                   key={item.name}
-                  className={`flex items-center gap-3 px-3 py-2 rounded-lg cursor-pointer group transition-colors ${
-                    selected === item.name ? 'bg-primary/10' : 'hover:bg-muted/20'
+                  className={`flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-pointer group transition-all duration-150 ${
+                    selected === item.name ? 'bg-primary/15 shadow-sm' : 'hover:bg-muted/25'
                   }`}
                   onClick={() => setSelected(item.name)}
                   onDoubleClick={() => item.type === 'folder' && navigateTo(`${path}/${item.name}`)}
                 >
                   {getIcon(item)}
-                  <span className="flex-1 text-xs truncate text-foreground">{item.name}</span>
+                  <span className="flex-1 text-xs truncate text-foreground font-medium">{item.name}</span>
                   <span className="w-16 text-right text-[10px] text-muted-foreground">
                     {item.size !== undefined ? `${item.size}B` : item.type === 'folder' ? `${item.children?.length || 0} items` : ''}
                   </span>
@@ -213,7 +213,7 @@ export default function FileManagerApp() {
                   </span>
                   <button
                     onClick={e => { e.stopPropagation(); deleteNode(`${path}/${item.name}`); }}
-                    className="opacity-0 group-hover:opacity-100 p-1 rounded hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all w-8"
+                    className="opacity-0 group-hover:opacity-100 p-1 rounded-lg hover:bg-destructive/20 text-muted-foreground hover:text-destructive transition-all duration-150 w-8"
                   >
                     <Trash2 size={12} />
                   </button>
