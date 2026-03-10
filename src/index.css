@@ -1,24 +1,143 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;700&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&display=swap');
-@import "tailwindcss";
+@import url('https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@400;500;600;700&family=Inter:wght@300;400;500;600;700&display=swap');
 
-@theme {
-  --font-sans: "Inter", ui-sans-serif, system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, monospace;
-  --font-serif: "Playfair Display", serif;
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  :root {
+    --background: 210 15% 8%;
+    --foreground: 200 20% 90%;
+
+    --card: 210 18% 11%;
+    --card-foreground: 200 20% 90%;
+
+    --popover: 210 20% 10%;
+    --popover-foreground: 200 20% 90%;
+
+    --primary: 174 72% 46%;
+    --primary-foreground: 210 15% 8%;
+
+    --secondary: 210 18% 16%;
+    --secondary-foreground: 200 20% 85%;
+
+    --muted: 210 15% 14%;
+    --muted-foreground: 210 10% 55%;
+
+    --accent: 174 60% 40%;
+    --accent-foreground: 200 20% 95%;
+
+    --destructive: 0 72% 51%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 210 15% 18%;
+    --input: 210 15% 18%;
+    --ring: 174 72% 46%;
+
+    --radius: 0.5rem;
+
+    --os-taskbar: 210 20% 8%;
+    --os-taskbar-foreground: 200 15% 75%;
+    --os-window-header: 210 18% 13%;
+    --os-window-body: 210 16% 10%;
+    --os-terminal-bg: 210 20% 6%;
+    --os-terminal-green: 142 72% 55%;
+    --os-terminal-cyan: 174 72% 56%;
+    --os-glow: 174 72% 46%;
+
+    --sidebar-background: 0 0% 98%;
+    --sidebar-foreground: 240 5.3% 26.1%;
+    --sidebar-primary: 240 5.9% 10%;
+    --sidebar-primary-foreground: 0 0% 98%;
+    --sidebar-accent: 240 4.8% 95.9%;
+    --sidebar-accent-foreground: 240 5.9% 10%;
+    --sidebar-border: 220 13% 91%;
+    --sidebar-ring: 217.2 91.2% 59.8%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-family: 'Inter', sans-serif;
+    overflow: hidden;
+  }
 }
 
 @layer utilities {
-  .custom-scrollbar::-webkit-scrollbar {
-    width: 4px;
+  .font-mono-os {
+    font-family: 'JetBrains Mono', monospace;
   }
-  .custom-scrollbar::-webkit-scrollbar-track {
-    background: #0a0a0a;
+  .os-glass {
+    background: hsla(210, 18%, 11%, 0.85);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid hsla(210, 15%, 25%, 0.3);
   }
-  .custom-scrollbar::-webkit-scrollbar-thumb {
-    background: #065f46;
-    border-radius: 10px;
+  .os-glow {
+    box-shadow: 0 0 20px hsla(174, 72%, 46%, 0.15), 0 0 60px hsla(174, 72%, 46%, 0.05);
   }
-  .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-    background: #059669;
+  .os-glow-text {
+    text-shadow: 0 0 10px hsla(174, 72%, 46%, 0.5);
+  }
+  .os-window-shadow {
+    box-shadow: 0 8px 32px rgba(0, 0, 0, 0.5), 0 2px 8px rgba(0, 0, 0, 0.3);
+  }
+  .taskbar-blur {
+    background: hsla(210, 20%, 8%, 0.9);
+    backdrop-filter: blur(30px);
+    -webkit-backdrop-filter: blur(30px);
+  }
+  .scrollbar-os::-webkit-scrollbar {
+    width: 6px;
+    height: 6px;
+  }
+  .scrollbar-os::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  .scrollbar-os::-webkit-scrollbar-thumb {
+    background: hsla(210, 15%, 30%, 0.5);
+    border-radius: 3px;
+  }
+  .scrollbar-os::-webkit-scrollbar-thumb:hover {
+    background: hsla(210, 15%, 40%, 0.5);
   }
 }
+
+@keyframes windowOpen {
+  from { opacity: 0; transform: scale(0.92); }
+  to { opacity: 1; transform: scale(1); }
+}
+@keyframes windowClose {
+  from { opacity: 1; transform: scale(1); }
+  to { opacity: 0; transform: scale(0.92); }
+}
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to { opacity: 1; transform: translateY(0); }
+}
+@keyframes slideInRight {
+  from { opacity: 0; transform: translateX(30px); }
+  to { opacity: 1; transform: translateX(0); }
+}
+@keyframes blink {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+@keyframes shake {
+  0%, 100% { transform: translateX(0); }
+  25% { transform: translateX(-8px); }
+  75% { transform: translateX(8px); }
+}
+@keyframes scaleIn {
+  from { opacity: 0; transform: scale(0.9); }
+  to { opacity: 1; transform: scale(1); }
+}
+.animate-window-open { animation: windowOpen 0.2s ease-out; }
+.animate-slide-up { animation: slideUp 0.25s ease-out; }
+.animate-slide-in-right { animation: slideInRight 0.3s ease-out both; }
+.animate-blink { animation: blink 1s step-end infinite; }
+.animate-scale-in { animation: scaleIn 0.15s ease-out; }
