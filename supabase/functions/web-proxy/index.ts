@@ -20,19 +20,57 @@ serve(async (req) => {
       });
     }
 
+    // Validate URL format
+    let parsedUrl: URL;
+    try {
+      parsedUrl = new URL(url);
+      if (!["http:", "https:"].includes(parsedUrl.protocol)) {
+        return new Response(JSON.stringify({ error: "invalid_url", message: "Only http/https URLs are supported" }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+      // Basic domain validation - must have a TLD
+      const hostParts = parsedUrl.hostname.split(".");
+      if (hostParts.length < 2 || hostParts[hostParts.length - 1].length < 2) {
+        return new Response(JSON.stringify({ error: "invalid_url", message: `"${parsedUrl.hostname}" is not a valid domain. Check the URL and try again.` }), {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+    } catch {
+      return new Response(JSON.stringify({ error: "invalid_url", message: "Invalid URL format" }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // Fetch the target URL server-side (bypasses X-Frame-Options/CSP)
     const controller = new AbortController();
     const timeout = setTimeout(() => controller.abort(), 15000);
 
-    const response = await fetch(url, {
-      signal: controller.signal,
-      headers: {
-        "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
-        "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-        "Accept-Language": "en-US,en;q=0.9",
-      },
-      redirect: "follow",
-    });
+    let response: Response;
+    try {
+      response = await fetch(url, {
+        signal: controller.signal,
+        headers: {
+          "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36",
+          "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+          "Accept-Language": "en-US,en;q=0.9",
+        },
+        redirect: "follow",
+      });
+    } catch (fetchErr: any) {
+      clearTimeout(timeout);
+      const msg = fetchErr.message || "Failed to connect";
+      const isDns = msg.includes("dns") || msg.includes("lookup");
+      const isTimeout = msg.includes("abort") || msg.includes("timeout");
+      return new Response(JSON.stringify({ 
+        error: isDns ? "dns_error" : isTimeout ? "timeout" : "connection_error", 
+        message: isDns ? `Could not resolve "${parsedUrl.hostname}". The site may not exist or is unreachable.` 
+          : isTimeout ? "Connection timed out. The site took too long to respond."
+          : `Could not connect to "${parsedUrl.hostname}": ${msg}`
+      }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
     clearTimeout(timeout);
 
     const contentType = response.headers.get("content-type") || "";
