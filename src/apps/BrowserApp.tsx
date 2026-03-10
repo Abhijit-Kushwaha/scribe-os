@@ -1,9 +1,5 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
-import {
-  Globe, ArrowLeft, ArrowRight, RotateCw, Search, X, Plus, ChevronDown,
-  Star, Download, Clock, MoreVertical, Shield, Lock, Layers, FolderDown,
-  ExternalLink, Pause, Play, Trash2, FileText, Zap, Eye, EyeOff, ShieldCheck
-} from 'lucide-react';
+import { Globe, ArrowLeft, ArrowRight, RotateCw, Search, X, Plus, ChevronDown, Star, Download, Clock, MoveVertical as MoreVertical, Shield, Lock, Layers, FolderDown, ExternalLink, Pause, Play, Trash2, FileText, Zap, Eye, EyeOff, ShieldCheck } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 import { browserService } from '@/services/browserService';
 

@@ -1,10 +1,7 @@
 import React, { useState } from 'react';
 import { useOS } from '../os/OSContext';
 import { FileNode } from '../os/types';
-import {
-  Folder, FileText, ArrowLeft, ArrowRight, Plus, Trash2, Home, HardDrive,
-  Download, Image, Music, FolderOpen, Grid, List, Search, ChevronRight
-} from 'lucide-react';
+import { Folder, FileText, ArrowLeft, ArrowRight, Plus, Trash2, Chrome as Home, HardDrive, Download, Image, Music, FolderOpen, Grid2x2 as Grid, List, Search, ChevronRight } from 'lucide-react';
 
 const QUICK_ACCESS = [
   { name: 'Home', path: 'C:/Users/Scribe', icon: Home },
