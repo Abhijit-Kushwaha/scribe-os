@@ -93,51 +93,51 @@ export default function CalculatorApp({ windowId }: { windowId: string }) {
   return (
     <div className="h-full flex flex-col bg-[hsl(var(--os-window-body))] font-mono-os">
       {/* Mode toggle */}
-      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/20">
+      <div className="flex items-center justify-between px-3 py-1.5 border-b border-border/20 bg-secondary/5">
         <div className="flex gap-1">
-          <button onClick={() => setScientific(false)} className={`px-2 py-0.5 text-[10px] rounded ${!scientific ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:bg-muted/30'}`}>Standard</button>
-          <button onClick={() => setScientific(true)} className={`px-2 py-0.5 text-[10px] rounded ${scientific ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:bg-muted/30'}`}>Scientific</button>
+          <button onClick={() => setScientific(false)} className={`px-3 py-1 text-[10px] font-medium rounded transition-all ${!scientific ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:bg-muted/30'}`}>Standard</button>
+          <button onClick={() => setScientific(true)} className={`px-3 py-1 text-[10px] font-medium rounded transition-all ${scientific ? 'bg-primary text-white shadow-sm' : 'text-muted-foreground hover:bg-muted/30'}`}>Scientific</button>
         </div>
-        <button onClick={() => setShowHistory(!showHistory)} className={`px-2 py-0.5 text-[10px] rounded ${showHistory ? 'bg-primary/20 text-primary' : 'text-muted-foreground hover:bg-muted/30'}`}>History</button>
+        <button onClick={() => setShowHistory(!showHistory)} className={`px-3 py-1 text-[10px] font-medium rounded transition-all ${showHistory ? 'bg-accent text-white shadow-sm' : 'text-muted-foreground hover:bg-muted/30'}`}>History</button>
       </div>
 
       {/* Display */}
-      <div className="px-4 py-3 text-right border-b border-border/10">
-        <div className="text-[10px] text-muted-foreground h-4 truncate">{expression}</div>
-        <div className="text-2xl text-foreground font-semibold truncate">{display}</div>
+      <div className="px-4 py-4 text-right border-b border-border/10 bg-gradient-to-b from-muted/5 to-transparent">
+        <div className="text-[11px] text-muted-foreground h-5 truncate font-mono min-h-5">{expression || '\u00A0'}</div>
+        <div className="text-3xl text-foreground font-bold truncate font-mono mt-1 transition-all duration-200">{display}</div>
       </div>
 
       <div className="flex-1 flex overflow-hidden">
         {/* Buttons */}
-        <div className="flex-1 flex flex-col p-1.5 gap-1">
+        <div className="flex-1 flex flex-col p-2 gap-1.5 bg-secondary/3">
           {scientific && SCI_BUTTONS.map((row, ri) => (
-            <div key={ri} className="flex gap-1 flex-1">
+            <div key={ri} className="flex gap-1.5 flex-1">
               {row.map(btn => (
                 <button key={btn} onClick={() => handleButton(btn)}
-                  className="flex-1 rounded-lg bg-secondary/40 text-foreground text-[11px] hover:bg-secondary/60 active:bg-secondary/80 transition-colors">
+                  className="flex-1 rounded-lg bg-secondary/50 text-foreground text-[10px] font-medium hover:bg-secondary/70 active:scale-95 transition-all shadow-sm">
                   {btn}
                 </button>
               ))}
             </div>
           ))}
           {BUTTONS.map((row, ri) => (
-            <div key={ri} className="flex gap-1 flex-1">
+            <div key={ri} className="flex gap-1.5 flex-1">
               {row.map(btn => (
                 <button key={btn} onClick={() => handleButton(btn)}
-                  className={`flex-1 rounded-lg text-sm font-medium transition-colors active:scale-95 ${
-                    btn === '=' ? 'bg-primary text-primary-foreground hover:bg-primary/90' :
-                    ['÷','×','−','+'].includes(btn) ? 'bg-accent/20 text-accent hover:bg-accent/30' :
-                    btn === 'C' ? 'bg-destructive/20 text-destructive hover:bg-destructive/30' :
-                    'bg-secondary/30 text-foreground hover:bg-secondary/50'
+                  className={`flex-1 rounded-lg text-sm font-semibold transition-all shadow-sm active:scale-95 ${
+                    btn === '=' ? 'bg-green-500 text-white hover:bg-green-600 shadow-green-500/20' :
+                    ['÷','×','−','+'].includes(btn) ? 'bg-orange-500/80 text-white hover:bg-orange-600 shadow-orange-500/20' :
+                    btn === 'C' ? 'bg-red-500/80 text-white hover:bg-red-600 shadow-red-500/20' :
+                    'bg-blue-500/20 text-foreground hover:bg-blue-500/30'
                   }`}>
                   {btn}
                 </button>
               ))}
             </div>
           ))}
-          <div className="flex gap-1">
+          <div className="flex gap-1.5">
             <button onClick={() => setDisplay(d => d.length > 1 ? d.slice(0, -1) : '0')}
-              className="flex-1 rounded-lg bg-secondary/30 text-muted-foreground hover:bg-secondary/50 flex items-center justify-center">
+              className="flex-1 rounded-lg bg-muted/50 text-muted-foreground hover:bg-muted/70 flex items-center justify-center transition-all shadow-sm active:scale-95">
               <Delete size={14} />
             </button>
           </div>
@@ -145,17 +145,21 @@ export default function CalculatorApp({ windowId }: { windowId: string }) {
 
         {/* History panel */}
         {showHistory && (
-          <div className="w-40 border-l border-border/20 overflow-y-auto scrollbar-os p-2">
-            <div className="text-[10px] text-muted-foreground mb-2">History</div>
-            {history.length === 0 ? (
-              <div className="text-[10px] text-muted-foreground/50 text-center mt-4">No history</div>
-            ) : history.map((h, i) => (
-              <button key={i} onClick={() => setDisplay(h.result)}
-                className="w-full text-right p-1.5 rounded hover:bg-muted/30 mb-0.5">
-                <div className="text-[9px] text-muted-foreground truncate">{h.expr}</div>
-                <div className="text-xs text-foreground">{h.result}</div>
-              </button>
-            ))}
+          <div className="w-48 border-l border-border/20 overflow-hidden flex flex-col bg-gradient-to-b from-muted/10 to-transparent animate-in fade-in slide-in-from-right-4 duration-300">
+            <div className="px-3 py-2.5 border-b border-border/20 bg-secondary/10">
+              <div className="text-xs font-semibold text-foreground">Calculation History</div>
+            </div>
+            <div className="flex-1 overflow-y-auto scrollbar-os">
+              {history.length === 0 ? (
+                <div className="text-[10px] text-muted-foreground/50 text-center mt-4">No history yet</div>
+              ) : history.map((h, i) => (
+                <button key={i} onClick={() => setDisplay(h.result)}
+                  className="w-full text-right p-2 border-b border-border/5 hover:bg-muted/20 transition-colors group">
+                  <div className="text-[9px] text-muted-foreground group-hover:text-muted-foreground/80 truncate font-mono">{h.expr}</div>
+                  <div className="text-xs text-foreground font-semibold font-mono">{h.result}</div>
+                </button>
+              ))}
+            </div>
           </div>
         )}
       </div>
