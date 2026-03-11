@@ -3,14 +3,18 @@
   "version": "1.0.0",
   "description": "Backend terminal server for Scribe OS",
   "main": "server.js",
+  "type": "commonjs",
   "scripts": {
     "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
   },
   "author": "Abhijit",
   "license": "MIT",
   "dependencies": {
+    "cors": "^2.8.5",
     "express": "^4.18.2",
-    "ws": "^8.13.0",
-    "cors": "^2.8.5"
+    "ws": "^8.13.0"
   }
 }

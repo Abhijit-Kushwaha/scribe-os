@@ -3,27 +3,25 @@ const http = require("http");
 const WebSocket = require("ws");
 const cors = require("cors");
 
+const HOST = "0.0.0.0";
+const PORT = Number.parseInt(process.env.PORT || "8000", 10);
+
 const app = express();
+app.disable("x-powered-by");
 app.use(cors());
 app.use(express.json());
 
-/*
-Root route
-Railway will call this to check if the server is alive
-*/
-app.get("/", (req, res) => {
-  res.status(200).send("Scribe OS Terminal Backend Running");
+// Railway health check + public root response
+app.get("/", (_req, res) => {
+  res.status(200).type("text/plain").send("Scribe OS Terminal Backend Running");
 });
 
-const server = http.createServer(app);
-const wss = new WebSocket.Server({ server });
+app.get("/health", (_req, res) => {
+  res.status(200).json({ status: "ok" });
+});
 
-/*
-Simple command engine
-You can expand this later with real tools
-*/
 function runCommand(command) {
-  const cmd = command.trim().toLowerCase();
+  const cmd = String(command || "").trim().toLowerCase();
 
   if (cmd === "help") {
     return `
@@ -53,26 +51,40 @@ clear     → clear terminal
     return "__CLEAR__";
   }
 
+  if (!cmd) {
+    return "";
+  }
+
   return `${cmd}: command not found`;
 }
 
-/*
-WebSocket connection
-This powers the browser terminal
-*/
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
+
 wss.on("connection", (ws) => {
   console.log("Terminal connected");
 
-  ws.send("Connected to Scribe OS Terminal\nType 'help'\n");
+  if (ws.readyState === WebSocket.OPEN) {
+    ws.send("Connected to Scribe OS Terminal\nType 'help'\n");
+  }
 
   ws.on("message", (msg) => {
     try {
       const command = msg.toString();
       const output = runCommand(command);
-      ws.send(output + "\n");
-    } catch (err) {
-      ws.send("Error processing command\n");
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send(`${output}\n`);
+      }
+    } catch (error) {
+      console.error("Message handling error:", error);
+      if (ws.readyState === WebSocket.OPEN) {
+        ws.send("Error processing command\n");
+      }
     }
+  });
+
+  ws.on("error", (error) => {
+    console.error("WebSocket client error:", error);
   });
 
   ws.on("close", () => {
@@ -80,11 +92,25 @@ wss.on("connection", (ws) => {
   });
 });
 
-/*
-Railway requires using its assigned port
-*/
-const PORT = process.env.PORT || 8000;
-
-server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`);
+wss.on("error", (error) => {
+  console.error("WebSocket server error:", error);
 });
+
+server.on("error", (error) => {
+  console.error("HTTP server error:", error);
+  process.exit(1);
+});
+
+server.listen(PORT, HOST, () => {
+  console.log(`Server running on ${HOST}:${PORT}`);
+});
+
+const shutdown = () => {
+  console.log("Shutting down server...");
+  wss.close(() => {
+    server.close(() => process.exit(0));
+  });
+};
+
+process.on("SIGTERM", shutdown);
+process.on("SIGINT", shutdown);
