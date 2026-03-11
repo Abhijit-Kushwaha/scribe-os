@@ -1,43 +1,90 @@
-const express = require("express")
-const http = require("http")
-const WebSocket = require("ws")
-const cors = require("cors")
+const express = require("express");
+const http = require("http");
+const WebSocket = require("ws");
+const cors = require("cors");
 
-const app = express()
-app.use(cors())
+const app = express();
+app.use(cors());
+app.use(express.json());
 
-const server = http.createServer(app)
-const wss = new WebSocket.Server({ server })
+/*
+Root route
+Railway will call this to check if the server is alive
+*/
+app.get("/", (req, res) => {
+  res.status(200).send("Scribe OS Terminal Backend Running");
+});
 
-function runCommand(cmd) {
+const server = http.createServer(app);
+const wss = new WebSocket.Server({ server });
 
-  cmd = cmd.trim()
+/*
+Simple command engine
+You can expand this later with real tools
+*/
+function runCommand(command) {
+  const cmd = command.trim().toLowerCase();
 
-  if (cmd === "help") return "Commands: help, whoami, date, about"
-  if (cmd === "whoami") return "kali@scribe-os"
-  if (cmd === "date") return new Date().toString()
-  if (cmd === "about") return "Scribe OS Terminal Backend"
+  if (cmd === "help") {
+    return `
+Available Commands:
 
-  return `${cmd}: command not found`
+help      → list commands
+whoami    → show current user
+date      → show system date
+about     → info about terminal
+clear     → clear terminal
+`;
+  }
+
+  if (cmd === "whoami") {
+    return "kali@scribe-os";
+  }
+
+  if (cmd === "date") {
+    return new Date().toString();
+  }
+
+  if (cmd === "about") {
+    return "Scribe OS Kali Terminal Backend";
+  }
+
+  if (cmd === "clear") {
+    return "__CLEAR__";
+  }
+
+  return `${cmd}: command not found`;
 }
 
+/*
+WebSocket connection
+This powers the browser terminal
+*/
 wss.on("connection", (ws) => {
+  console.log("Terminal connected");
 
-  ws.send("Connected to Scribe OS Terminal\nType 'help'\n")
+  ws.send("Connected to Scribe OS Terminal\nType 'help'\n");
 
   ws.on("message", (msg) => {
-    const output = runCommand(msg.toString())
-    ws.send(output + "\n")
-  })
+    try {
+      const command = msg.toString();
+      const output = runCommand(command);
+      ws.send(output + "\n");
+    } catch (err) {
+      ws.send("Error processing command\n");
+    }
+  });
 
-})
+  ws.on("close", () => {
+    console.log("Terminal disconnected");
+  });
+});
 
-app.get("/", (req, res) => {
-  res.send("Scribe OS Terminal Backend Running")
-})
-
-const PORT = process.env.PORT || 8000
+/*
+Railway requires using its assigned port
+*/
+const PORT = process.env.PORT || 8000;
 
 server.listen(PORT, "0.0.0.0", () => {
-  console.log(`Server running on port ${PORT}`)
-})
+  console.log(`Server running on port ${PORT}`);
+});
