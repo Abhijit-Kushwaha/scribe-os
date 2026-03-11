@@ -15,6 +15,7 @@
   "dependencies": {
     "cors": "^2.8.6",
     "express": "^4.22.1",
+    "node-pty-prebuilt-multiarch": "^0.10.1-pre.5",
     "ws": "^8.19.0"
   }
 }
