@@ -4,7 +4,7 @@ const WebSocket = require("ws");
 const cors = require("cors");
 
 const HOST = "0.0.0.0";
-const PORT = Number.parseInt(process.env.PORT || "8000", 10);
+const PORT = Number.parseInt(process.env.PORT || "8080", 10);
 
 const app = express();
 app.disable("x-powered-by");
