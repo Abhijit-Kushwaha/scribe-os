@@ -4,19 +4,15 @@ import "xterm/css/xterm.css"
 
 export default function TerminalApp() {
 
-  const ref = useRef<HTMLDivElement>(null)
+  const terminalRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
 
     const term = new Terminal({
-      cursorBlink: true,
-      fontSize: 14,
-      theme: {
-        background: "#000000"
-      }
+      cursorBlink: true
     })
 
-    term.open(ref.current!)
+    term.open(terminalRef.current!)
 
     const socket = new WebSocket(
       "wss://scribe-os-production.up.railway.app"
@@ -34,12 +30,12 @@ export default function TerminalApp() {
 
   return (
     <div
+      ref={terminalRef}
       style={{
         width: "100%",
         height: "100%",
         background: "black"
       }}
-      ref={ref}
     />
   )
 }

@@ -7,14 +7,12 @@ const { createTerminal } = require("./terminalManager")
 
 const app = express()
 app.use(cors())
-app.use(express.json())
 
 const PORT = process.env.PORT || 8000
 
 app.get("/", (req, res) => {
   res.json({
-    status: "Scribe OS Terminal Running",
-    shell: "real linux shell"
+    status: "Scribe OS Terminal Backend Running"
   })
 })
 
@@ -24,18 +22,18 @@ const wss = new WebSocket.Server({ server })
 
 wss.on("connection", (ws) => {
 
-  const term = createTerminal()
+  const terminal = createTerminal()
 
-  term.onData((data) => {
+  terminal.onData((data) => {
     ws.send(data)
   })
 
   ws.on("message", (msg) => {
-    term.write(msg.toString())
+    terminal.write(msg.toString())
   })
 
   ws.on("close", () => {
-    term.kill()
+    terminal.kill()
   })
 
 })
