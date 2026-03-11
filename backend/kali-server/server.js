@@ -5,74 +5,63 @@ const cors = require("cors")
 
 const app = express()
 app.use(cors())
+app.use(express.json())
 
 const server = http.createServer(app)
-
 const wss = new WebSocket.Server({ server })
 
-// Simple command handler
-function runCommand(command){
+function runCommand(cmd){
 
-  command = command.trim()
+  cmd = cmd.trim()
 
-  if(command === "help"){
+  if(cmd === "help"){
     return `
-Available commands:
+Commands:
 help
 whoami
-clear
 date
 about
+clear
 `
   }
 
-  if(command === "whoami"){
+  if(cmd === "whoami"){
     return "kali@scribe-os"
   }
 
-  if(command === "date"){
+  if(cmd === "date"){
     return new Date().toString()
   }
 
-  if(command === "about"){
+  if(cmd === "about"){
     return "Scribe OS Kali Terminal Backend"
   }
 
-  if(command === "clear"){
+  if(cmd === "clear"){
     return "__CLEAR__"
   }
 
-  return `${command}: command not found`
+  return `${cmd}: command not found`
 }
 
-
-// WebSocket terminal connection
 wss.on("connection",(ws)=>{
 
-  ws.send("Connected to Scribe OS Kali Terminal\nType 'help' to begin\n\n")
+  ws.send("Connected to Scribe OS Terminal\nType 'help'\n")
 
   ws.on("message",(msg)=>{
-
     const command = msg.toString()
-
     const output = runCommand(command)
-
     ws.send(output + "\n")
-
   })
 
 })
 
-
-// simple health route
-app.get("/",(req,res)=>{
-  res.send("Scribe OS Kali Terminal Server Running")
+app.get("/", (req,res)=>{
+  res.send("Scribe OS Terminal Backend Running")
 })
 
-
-// start server
 const PORT = process.env.PORT || 3000
 
-server.listen(PORT,()=>{
-  console.log("Server running on port " + PORT)
+server.listen(PORT, ()=>{
+  console.log("Server running on port", PORT)
 })
