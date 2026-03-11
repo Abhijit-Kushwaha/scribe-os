@@ -1,5 +1,3 @@
-import { supabase } from '@/integrations/supabase/client';
-
 export interface HistoryEntry {
   id?: string;
   url: string;
@@ -26,136 +24,52 @@ export interface BrowserSession {
   activeTabId: string;
 }
 
+const HISTORY_KEY = 'scribe-browser-history';
+const BOOKMARKS_KEY = 'scribe-browser-bookmarks';
+const SESSION_KEY = 'scribe-browser-session';
+
+function load<T>(key: string, fallback: T): T {
+  try { const v = localStorage.getItem(key); return v ? JSON.parse(v) : fallback; } catch { return fallback; }
+}
+function save(key: string, value: any) { localStorage.setItem(key, JSON.stringify(value)); }
+
 export const browserService = {
   async addToHistory(entry: HistoryEntry): Promise<void> {
-    const { error } = await supabase
-      .from('browser_history')
-      .insert([{
-        url: entry.url,
-        title: entry.title,
-        visited_at: new Date().toISOString(),
-      }]);
-
-    if (error) console.error('Error adding to history:', error);
+    const history = load<HistoryEntry[]>(HISTORY_KEY, []);
+    history.unshift({ ...entry, id: crypto.randomUUID(), visitedAt: Date.now() });
+    save(HISTORY_KEY, history.slice(0, 500));
   },
 
-  async getHistory(limit: number = 100): Promise<HistoryEntry[]> {
-    const { data, error } = await supabase
-      .from('browser_history')
-      .select('id, url, title, visited_at')
-      .order('visited_at', { ascending: false })
-      .limit(limit);
-
-    if (error) {
-      console.error('Error fetching history:', error);
-      return [];
-    }
-
-    return (data || []).map(item => ({
-      id: item.id,
-      url: item.url,
-      title: item.title,
-      visitedAt: new Date(item.visited_at).getTime(),
-    }));
+  async getHistory(limit = 100): Promise<HistoryEntry[]> {
+    return load<HistoryEntry[]>(HISTORY_KEY, []).slice(0, limit);
   },
 
   async clearHistory(): Promise<void> {
-    const { error } = await supabase
-      .from('browser_history')
-      .delete()
-      .neq('id', '00000000-0000-0000-0000-000000000000');
-
-    if (error) console.error('Error clearing history:', error);
+    save(HISTORY_KEY, []);
   },
 
   async addBookmark(bookmark: Bookmark): Promise<Bookmark | null> {
-    const { data, error } = await supabase
-      .from('browser_bookmarks')
-      .insert([{
-        name: bookmark.name,
-        url: bookmark.url,
-        icon: bookmark.icon || '🌐',
-        category: bookmark.category || 'general',
-      }])
-      .select()
-      .maybeSingle();
-
-    if (error) {
-      console.error('Error adding bookmark:', error);
-      return null;
-    }
-
-    return data ? {
-      id: data.id,
-      name: data.name,
-      url: data.url,
-      icon: data.icon,
-      category: data.category,
-    } : null;
+    const bookmarks = load<Bookmark[]>(BOOKMARKS_KEY, []);
+    const b = { ...bookmark, id: crypto.randomUUID(), icon: bookmark.icon || '🌐', category: bookmark.category || 'general' };
+    bookmarks.push(b);
+    save(BOOKMARKS_KEY, bookmarks);
+    return b;
   },
 
   async getBookmarks(): Promise<Bookmark[]> {
-    const { data, error } = await supabase
-      .from('browser_bookmarks')
-      .select('id, name, url, icon, category')
-      .order('created_at', { ascending: true });
-
-    if (error) {
-      console.error('Error fetching bookmarks:', error);
-      return [];
-    }
-
-    return (data || []).map(item => ({
-      id: item.id,
-      name: item.name,
-      url: item.url,
-      icon: item.icon,
-      category: item.category,
-    }));
+    return load<Bookmark[]>(BOOKMARKS_KEY, []);
   },
 
   async deleteBookmark(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('browser_bookmarks')
-      .delete()
-      .eq('id', id);
-
-    if (error) console.error('Error deleting bookmark:', error);
+    const bookmarks = load<Bookmark[]>(BOOKMARKS_KEY, []);
+    save(BOOKMARKS_KEY, bookmarks.filter(b => b.id !== id));
   },
 
   async saveSession(session: BrowserSession): Promise<void> {
-    const { data: existing } = await supabase
-      .from('browser_sessions')
-      .select('id')
-      .maybeSingle();
-
-    if (existing) {
-      const { error } = await supabase
-        .from('browser_sessions')
-        .update({ session_data: session })
-        .eq('id', existing.id);
-
-      if (error) console.error('Error updating session:', error);
-    } else {
-      const { error } = await supabase
-        .from('browser_sessions')
-        .insert([{ session_data: session }]);
-
-      if (error) console.error('Error saving session:', error);
-    }
+    save(SESSION_KEY, session);
   },
 
   async getSession(): Promise<BrowserSession | null> {
-    const { data, error } = await supabase
-      .from('browser_sessions')
-      .select('session_data')
-      .maybeSingle();
-
-    if (error) {
-      console.error('Error fetching session:', error);
-      return null;
-    }
-
-    return data ? data.session_data : null;
+    return load<BrowserSession | null>(SESSION_KEY, null);
   },
 };

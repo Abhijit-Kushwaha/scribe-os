@@ -1,5 +1,3 @@
-import { supabase } from '@/integrations/supabase/client';
-
 export interface Note {
   id: string;
   title: string;
@@ -10,75 +8,37 @@ export interface Note {
   updatedAt: number;
 }
 
+const NOTES_KEY = 'scribe-notes';
+
+function load(): Note[] {
+  try { const v = localStorage.getItem(NOTES_KEY); return v ? JSON.parse(v) : []; } catch { return []; }
+}
+function save(notes: Note[]) { localStorage.setItem(NOTES_KEY, JSON.stringify(notes)); }
+
 export const notesService = {
   async getNotes(): Promise<Note[]> {
-    const { data, error } = await supabase
-      .from('notes')
-      .select('id, title, content, color, pinned, created_at, updated_at')
-      .order('pinned', { ascending: false })
-      .order('updated_at', { ascending: false });
-
-    if (error) {
-      console.error('Error fetching notes:', error);
-      return [];
-    }
-
-    return (data || []).map(note => ({
-      id: note.id,
-      title: note.title,
-      content: note.content,
-      color: note.color,
-      pinned: note.pinned,
-      createdAt: new Date(note.created_at).getTime(),
-      updatedAt: new Date(note.updated_at).getTime(),
-    }));
+    return load().sort((a, b) => (b.pinned ? 1 : 0) - (a.pinned ? 1 : 0) || b.updatedAt - a.updatedAt);
   },
 
-  async createNote(title: string = 'Untitled', color: string = 'blue'): Promise<Note | null> {
-    const { data, error } = await supabase
-      .from('notes')
-      .insert([{ title, color, content: '' }])
-      .select()
-      .maybeSingle();
-
-    if (error) {
-      console.error('Error creating note:', error);
-      return null;
-    }
-
-    return data ? {
-      id: data.id,
-      title: data.title,
-      content: data.content,
-      color: data.color,
-      pinned: data.pinned,
-      createdAt: new Date(data.created_at).getTime(),
-      updatedAt: new Date(data.updated_at).getTime(),
-    } : null;
+  async createNote(title = 'Untitled', color = 'blue'): Promise<Note | null> {
+    const notes = load();
+    const note: Note = { id: crypto.randomUUID(), title, content: '', color, pinned: false, createdAt: Date.now(), updatedAt: Date.now() };
+    notes.push(note);
+    save(notes);
+    return note;
   },
 
   async updateNote(id: string, updates: Partial<Omit<Note, 'id' | 'createdAt'>>): Promise<void> {
-    const { error } = await supabase
-      .from('notes')
-      .update({
-        ...(updates.title !== undefined && { title: updates.title }),
-        ...(updates.content !== undefined && { content: updates.content }),
-        ...(updates.color !== undefined && { color: updates.color }),
-        ...(updates.pinned !== undefined && { pinned: updates.pinned }),
-        updated_at: new Date().toISOString(),
-      })
-      .eq('id', id);
-
-    if (error) console.error('Error updating note:', error);
+    const notes = load();
+    const idx = notes.findIndex(n => n.id === id);
+    if (idx >= 0) {
+      notes[idx] = { ...notes[idx], ...updates, updatedAt: Date.now() };
+      save(notes);
+    }
   },
 
   async deleteNote(id: string): Promise<void> {
-    const { error } = await supabase
-      .from('notes')
-      .delete()
-      .eq('id', id);
-
-    if (error) console.error('Error deleting note:', error);
+    save(load().filter(n => n.id !== id));
   },
 
   async togglePin(id: string, pinned: boolean): Promise<void> {
