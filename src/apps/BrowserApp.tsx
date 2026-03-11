@@ -131,7 +131,7 @@ export default function BrowserApp({ windowId }: { windowId: string }) {
         setHistory(dbHistory.map(h => ({ url: h.url, title: h.title, time: h.visitedAt || 0 })));
       }
       const dbBookmarks = await browserService.getBookmarks();
-      setBookmarks(dbBookmarks);
+      setBookmarks(dbBookmarks.map(b => ({ ...b, icon: b.icon || '🌐' })));
     };
     loadHistoryAndBookmarks();
   }, []);
