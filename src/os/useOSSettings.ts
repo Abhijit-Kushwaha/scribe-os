@@ -72,6 +72,7 @@ export const ACCENT_COLORS: Record<OSSettings['accentColor'], { hsl: string; lab
 
 export const WALLPAPERS: Record<OSSettings['wallpaper'], { label: string; css: string }> = {
   'default':         { label: 'Default Image', css: '' },
+  'custom':          { label: 'Cyber Dark', css: '__custom__' },
   'gradient-blue':   { label: 'Ocean Blue',    css: 'linear-gradient(135deg, hsl(210 80% 15%) 0%, hsl(220 60% 25%) 50%, hsl(200 70% 20%) 100%)' },
   'gradient-purple': { label: 'Deep Purple',   css: 'linear-gradient(135deg, hsl(270 50% 12%) 0%, hsl(280 60% 22%) 50%, hsl(300 40% 15%) 100%)' },
   'gradient-green':  { label: 'Forest',        css: 'linear-gradient(135deg, hsl(150 40% 10%) 0%, hsl(160 50% 18%) 50%, hsl(140 35% 12%) 100%)' },
