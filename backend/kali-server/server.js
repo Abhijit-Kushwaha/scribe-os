@@ -1,31 +1,41 @@
 const express = require("express")
 const cors = require("cors")
 const WebSocket = require("ws")
-const { createTerminal } = require("./terminalManager")
+const pty = require("node-pty")
 
 const app = express()
-
 app.use(cors())
-app.get("/", (req, res) => {
-  res.send("Scribe OS Terminal Backend Running")
-})
 
-const server = app.listen(8000, () => {
-  console.log("Terminal server running on port 8000")
+const PORT = process.env.PORT || 8000
+
+const server = app.listen(PORT, () => {
+  console.log("Terminal server running on port", PORT)
 })
 
 const wss = new WebSocket.Server({ server })
 
 wss.on("connection", (ws) => {
 
-  const terminal = createTerminal()
+  const terminal = pty.spawn(
+    "docker",
+    ["exec", "-i", "scribe-kali", "bash"],
+    {
+      name: "xterm-color",
+      cols: 80,
+      rows: 30,
+      cwd: process.cwd(),
+      env: process.env
+    }
+  )
 
-  terminal.onData((data) => {
-    ws.send(data)
+  terminal.onData(data => {
+    if (ws.readyState === 1) {
+      ws.send(data)
+    }
   })
 
-  ws.on("message", (msg) => {
-    terminal.write(msg)
+  ws.on("message", msg => {
+    terminal.write(msg.toString())
   })
 
   ws.on("close", () => {

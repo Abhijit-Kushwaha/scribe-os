@@ -1,20 +1,21 @@
 const pty = require("node-pty-prebuilt-multiarch")
 
-function createTerminal() {
+function createTerminal(containerName) {
 
-  const shell = process.platform === "win32"
-    ? "powershell.exe"
-    : "bash"
+  const term = pty.spawn(
+    "docker",
+    ["exec", "-it", containerName, "bash"],
+    {
+      name: "xterm-color",
+      cols: 80,
+      rows: 30,
+      cwd: process.cwd(),
+      env: process.env
+    }
+  )
 
-  const terminal = pty.spawn(shell, [], {
-    name: "xterm-color",
-    cols: 80,
-    rows: 30,
-    cwd: process.env.HOME,
-    env: process.env
-  })
+  return term
 
-  return terminal
 }
 
 module.exports = { createTerminal }
