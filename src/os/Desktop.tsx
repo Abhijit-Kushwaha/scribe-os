@@ -20,6 +20,7 @@ const DESKTOP_APPS = [
   'clock', 'clipboard', 'sysinfo',
   'taskmanager', 'settings',
   'games', 'aichat', 'recycle',
+  'recon', 'vulnlab', 'pentest', 'bugvault', 'triage',
 ];
 
 export default function Desktop() {
