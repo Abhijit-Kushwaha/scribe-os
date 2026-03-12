@@ -29,6 +29,11 @@ import PaintApp from '../apps/PaintApp';
 import SystemInfoApp from '../apps/SystemInfoApp';
 import ClipboardApp from '../apps/ClipboardApp';
 import ContactsApp from '../apps/ContactsApp';
+import ReconNexus from '../apps/ReconNexus';
+import VulnLabOrbital from '../apps/VulnLabOrbital';
+import PentestForge from '../apps/PentestForge';
+import BugVault from '../apps/BugVault';
+import TriageBoard from '../apps/TriageBoard';
 
 export const APP_REGISTRY: OSApp[] = [
   // Core
