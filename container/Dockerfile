@@ -14,4 +14,4 @@ sudo
 
 WORKDIR /workspace
 
-CMD ["/bin/bash"]
+CMD ["/bin/bash"]   
