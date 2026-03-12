@@ -73,4 +73,10 @@ export const APP_REGISTRY: OSApp[] = [
   // Fun
   { id: 'games', name: 'Games', icon: '🎮', component: GameLauncherApp, defaultWidth: 380, defaultHeight: 520 },
   { id: 'aichat', name: 'AI Chat', icon: '🤖', component: AIChatApp, defaultWidth: 500, defaultHeight: 500 },
+  // Security / Bug Bounty
+  { id: 'recon', name: 'ReconNexus', icon: '🔍', component: ReconNexus, defaultWidth: 800, defaultHeight: 500 },
+  { id: 'vulnlab', name: 'VulnLab', icon: '🧪', component: VulnLabOrbital, defaultWidth: 700, defaultHeight: 500 },
+  { id: 'pentest', name: 'PentestForge', icon: '⚔️', component: PentestForge, defaultWidth: 800, defaultHeight: 500 },
+  { id: 'bugvault', name: 'BugVault', icon: '🔐', component: BugVault, defaultWidth: 750, defaultHeight: 500 },
+  { id: 'triage', name: 'TriageBoard', icon: '📋', component: TriageBoard, defaultWidth: 900, defaultHeight: 500 },
 ];
