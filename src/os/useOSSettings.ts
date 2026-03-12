@@ -2,7 +2,7 @@ import { useState, useCallback, useEffect } from 'react';
 
 export interface OSSettings {
   username: string;
-  wallpaper: 'default' | 'gradient-blue' | 'gradient-purple' | 'gradient-green' | 'solid-dark' | 'solid-black';
+  wallpaper: 'default' | 'custom' | 'gradient-blue' | 'gradient-purple' | 'gradient-green' | 'solid-dark' | 'solid-black';
   accentColor: 'cyan' | 'blue' | 'purple' | 'green' | 'orange' | 'red' | 'pink';
   fontSize: 'small' | 'medium' | 'large';
   taskbarPosition: 'bottom' | 'top';
