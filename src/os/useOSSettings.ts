@@ -19,7 +19,7 @@ export interface OSSettings {
 
 const DEFAULT_SETTINGS: OSSettings = {
   username: 'Scribe',
-  wallpaper: 'default',
+  wallpaper: 'custom',
   accentColor: 'cyan',
   fontSize: 'medium',
   taskbarPosition: 'bottom',
