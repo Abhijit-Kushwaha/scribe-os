@@ -1,5 +1,6 @@
 import { useEffect, useRef } from "react"
 import { Terminal } from "xterm"
+import { io } from "socket.io-client"
 import "xterm/css/xterm.css"
 
 export default function TerminalApp() {
@@ -9,22 +10,40 @@ export default function TerminalApp() {
   useEffect(() => {
 
     const term = new Terminal({
-      cursorBlink: true
+      cursorBlink: true,
+      fontSize: 14,
+      theme: {
+        background: "#000000",
+        foreground: "#ffffff"
+      }
     })
 
     term.open(terminalRef.current!)
 
-    const socket = new WebSocket(
-      "wss://scribe-os-production.up.railway.app"
-    )
+    term.write("Connecting to Codespaces terminal...\r\n")
 
-    socket.onmessage = (event) => {
-      term.write(event.data)
-    }
+    const socket = io("https://organic-space-bassoon-9100.app.github.dev")
+
+    socket.on("connect", () => {
+      term.write("Connected to Codespaces shell\r\n")
+    })
+
+    socket.on("output", (data: string) => {
+      term.write(data)
+    })
+
+    socket.on("disconnect", () => {
+      term.write("\r\nDisconnected from server\r\n")
+    })
 
     term.onData((data) => {
-      socket.send(data)
+      socket.emit("input", data)
     })
+
+    return () => {
+      socket.disconnect()
+      term.dispose()
+    }
 
   }, [])
 
