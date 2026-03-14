@@ -1,6 +1,6 @@
 import React, { useState, useCallback, useRef, useEffect } from 'react';
 import { Globe, ArrowLeft, ArrowRight, RotateCw, Search, X, Plus, ChevronDown, Star, Download, Clock, MoveVertical as MoreVertical, Shield, Lock, Layers, FolderDown, ExternalLink, Pause, Play, Trash2, FileText, Zap, Eye, EyeOff, ShieldCheck } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/lib/supabase/client';
 import { browserService } from '@/services/browserService';
 
 /* ─── Types ─── */
@@ -77,8 +77,11 @@ const proxyFetch = async (url: string): Promise<{ html?: string; error?: string;
     if (error) return { error: error.message };
     if (data.error) return { error: data.error };
     return { html: data.html, finalUrl: data.finalUrl };
-  } catch (e: any) {
-    return { error: e.message || 'Failed to fetch' };
+  } catch (e: unknown) {
+    if (e instanceof Error) {
+      return { error: e.message };
+    }
+    return { error: 'Failed to fetch' };
   }
 };
 
@@ -142,29 +145,16 @@ export default function BrowserApp({ windowId }: { windowId: string }) {
     setUrlInput(current?.url || '');
   }, [activeTab, current?.url]);
 
-  // Listen for navigation messages from proxy-loaded pages
-  useEffect(() => {
-    const handler = (e: MessageEvent) => {
-      if (e.data?.type === 'navigate' && e.data.url) {
-        navigate(e.data.url);
-      }
-    };
-    window.addEventListener('message', handler);
-    return () => window.removeEventListener('message', handler);
-  }, [activeTab]);
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      setDownloads(prev => prev.map(d => {
-        if (d.status === 'downloading' && d.progress < 100) {
-          const next = Math.min(100, d.progress + Math.random() * 3);
-          return { ...d, progress: next, status: next >= 100 ? 'complete' : 'downloading' };
-        }
-        return d;
-      }));
-    }, 800);
-    return () => clearInterval(interval);
-  }, []);
+  const createGroup = (tabId: string) => {
+    const colorIdx = groups.length % GROUP_COLORS.length;
+    const g: TabGroup = { id: uid(), name: `Group ${groups.length + 1}`, color: GROUP_COLORS[colorIdx].name, collapsed: false };
+    setGroups(prev => [...prev, g]);
+    setTabs(prev => prev.map(t => t.id === tabId ? { ...t, groupId: g.id } : t));
+  };
+  const addToGroup = (tabId: string, groupId: string) => setTabs(prev => prev.map(t => t.id === tabId ? { ...t, groupId } : t));
+  const removeFromGroup = (tabId: string) => setTabs(prev => prev.map(t => t.id === tabId ? { ...t, groupId: undefined } : t));
+  const toggleGroupCollapse = (groupId: string) => setGroups(prev => prev.map(g => g.id === groupId ? { ...g, collapsed: !g.collapsed } : g));
+  const getGroupColor = (colorName: string) => GROUP_COLORS.find(c => c.name === colorName) || GROUP_COLORS[0];
 
   const navigate = useCallback(async (url: string, tabId?: string) => {
     let finalUrl = url.trim();
@@ -179,7 +169,7 @@ export default function BrowserApp({ windowId }: { windowId: string }) {
     const tId = tabId || activeTab;
     const favicon = faviconFor(finalUrl);
     let title = 'Loading...';
-    try { title = new URL(finalUrl).hostname.replace('www.', ''); } catch {}
+    try { title = new URL(finalUrl).hostname.replace('www.', ''); } catch { /* ignore invalid URL */ }
 
     // Set loading state
     setTabs(prev => prev.map(t => {
@@ -206,6 +196,17 @@ export default function BrowserApp({ windowId }: { windowId: string }) {
 
     await browserService.addToHistory({ url: finalUrl, title: pageTitle });
   }, [activeTab]);
+
+  // Listen for navigation messages from proxy-loaded pages
+  useEffect(() => {
+    const handler = (e: MessageEvent) => {
+      if (e.data?.type === 'navigate' && e.data.url) {
+        navigate(e.data.url);
+      }
+    };
+    window.addEventListener('message', handler);
+    return () => window.removeEventListener('message', handler)
+  }, [navigate]);
 
   const goBack = useCallback(() => {
     const tab = tabs.find(t => t.id === activeTab);
@@ -248,17 +249,6 @@ export default function BrowserApp({ windowId }: { windowId: string }) {
     await browserService.deleteBookmark(id);
     setBookmarks(prev => prev.filter(b => b.id !== id));
   };
-
-  const createGroup = (tabId: string) => {
-    const colorIdx = groups.length % GROUP_COLORS.length;
-    const g: TabGroup = { id: uid(), name: `Group ${groups.length + 1}`, color: GROUP_COLORS[colorIdx].name, collapsed: false };
-    setGroups(prev => [...prev, g]);
-    setTabs(prev => prev.map(t => t.id === tabId ? { ...t, groupId: g.id } : t));
-  };
-  const addToGroup = (tabId: string, groupId: string) => setTabs(prev => prev.map(t => t.id === tabId ? { ...t, groupId } : t));
-  const removeFromGroup = (tabId: string) => setTabs(prev => prev.map(t => t.id === tabId ? { ...t, groupId: undefined } : t));
-  const toggleGroupCollapse = (groupId: string) => setGroups(prev => prev.map(g => g.id === groupId ? { ...g, collapsed: !g.collapsed } : g));
-  const getGroupColor = (colorName: string) => GROUP_COLORS.find(c => c.name === colorName) || GROUP_COLORS[0];
 
   const filteredTabs = tabSearch ? tabs.filter(t => t.title.toLowerCase().includes(tabSearch.toLowerCase()) || t.url.toLowerCase().includes(tabSearch.toLowerCase())) : tabs;
 
@@ -355,7 +345,7 @@ export default function BrowserApp({ windowId }: { windowId: string }) {
         {/* Omnibox */}
         <div className="flex-1 flex items-center gap-2 bg-muted/30 hover:bg-muted/40 rounded-full px-3 py-1.5 transition-colors group focus-within:ring-1 focus-within:ring-orange-500/50">
           {current?.url ? <Lock size={11} className="text-green-500 shrink-0" /> : <Search size={11} className="text-muted-foreground shrink-0" />}
-          <input ref={urlRef} value={urlInput} onChange={e => setUrlInput(e.target.value)}
+          <input ref={urlRef} value={urlInput} onChange={e => setUrlInput(e.target.value)} 
             onKeyDown={e => { if (e.key === 'Enter') navigate(urlInput); }}
             onFocus={e => e.target.select()}
             placeholder="Search Brave or type a URL"
@@ -379,13 +369,13 @@ export default function BrowserApp({ windowId }: { windowId: string }) {
       {/* Bookmarks Bar */}
       <div className="flex items-center gap-0.5 px-3 py-1 bg-secondary/5 border-b border-border/10 overflow-x-auto scrollbar-os">
         {bookmarks.length > 0 ? bookmarks.map(bm => (
-          <div key={bm.id || bm.url} className="group relative shrink-0">
+          <div key={bm.id || bm.url} className="group relative shrink-0"> 
             <button onClick={() => navigate(bm.url)}
               className="flex items-center gap-1 px-2 py-0.5 rounded text-[11px] text-muted-foreground hover:bg-muted/40 whitespace-nowrap transition-colors">
               <span className="text-[10px]">{bm.icon}</span><span>{bm.name}</span>
             </button>
             <button onClick={() => removeBookmark(bm.id)}
-              className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 p-0.5 rounded bg-destructive/20 hover:bg-destructive/40 transition-all">
+              className="absolute right-0 top-0 opacity-0 group-hover:opacity-100 p-0.5 rounded bg-destructive/20 hover:bg-destructive/40 transition-all"> 
               <X size={10} className="text-destructive" />
             </button>
           </div>
@@ -465,7 +455,7 @@ export default function BrowserApp({ windowId }: { windowId: string }) {
             { label: 'Add to new group', action: () => { createGroup(contextMenu.tabId); setContextMenu(null); } },
             ...(groups.length > 0 ? groups.map(g => ({ label: `Add to "${g.name}"`, action: () => { addToGroup(contextMenu.tabId, g.id); setContextMenu(null); } })) : []),
             ...(tabs.find(t => t.id === contextMenu.tabId)?.groupId ? [{ label: 'Remove from group', action: () => { removeFromGroup(contextMenu.tabId); setContextMenu(null); } }] : []),
-            null as any,
+            null,
             { label: 'Close tab', action: () => { closeTab(contextMenu.tabId); setContextMenu(null); } },
             { label: 'Close other tabs', action: () => { setTabs(prev => prev.filter(t => t.id === contextMenu.tabId)); setActiveTab(contextMenu.tabId); setContextMenu(null); } },
           ].map((item, i) => item === null ? (
@@ -580,7 +570,7 @@ export default function BrowserApp({ windowId }: { windowId: string }) {
             </div>
             <div className="grid grid-cols-4 gap-4 mt-8 max-w-md">
               {SUGGESTED_SITES.map(site => (
-                <button key={site.url} onClick={() => navigate(site.url)}
+                <button key={site.url} onClick={() => navigate(site.url)} 
                   className="flex flex-col items-center gap-2 p-3 rounded-xl hover:bg-muted/30 transition-colors group">
                   <div className="w-10 h-10 rounded-full bg-muted/40 group-hover:bg-muted/60 flex items-center justify-center text-lg transition-colors">{site.icon}</div>
                   <span className="text-[11px] text-muted-foreground group-hover:text-foreground transition-colors">{site.name}</span>
@@ -602,11 +592,11 @@ export default function BrowserApp({ windowId }: { windowId: string }) {
             <div className="text-sm text-muted-foreground mb-2 max-w-md font-mono text-orange-400">{current?.url}</div>
             <div className="text-xs text-muted-foreground mb-4">{current.error}</div>
             <div className="flex gap-2">
-              <button onClick={() => navigate(current.url)}
+              <button onClick={() => navigate(current.url)} 
                 className="px-4 py-2 bg-orange-500 text-white rounded-lg text-sm hover:bg-orange-600 flex items-center gap-2">
                 <RotateCw size={14} />Retry
               </button>
-              <button onClick={() => window.open(current?.url, '_blank')}
+              <button onClick={() => window.open(current?.url, '_blank')} 
                 className="px-4 py-2 bg-muted/30 text-foreground rounded-lg text-sm hover:bg-muted/50 flex items-center gap-2">
                 <ExternalLink size={14} />Open externally
               </button>

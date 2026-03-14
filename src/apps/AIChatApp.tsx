@@ -1,5 +1,5 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from '@/integrations/supabase';
 import { Send, Bot, User, Sparkles, Trash2 } from 'lucide-react';
 
 interface Message {
@@ -49,8 +49,12 @@ export default function AIChatApp({ windowId }: { windowId: string }) {
 
       const reply = data?.reply || data?.choices?.[0]?.message?.content || 'No response received.';
       setMessages(prev => [...prev, { role: 'assistant', content: reply }]);
-    } catch (e: any) {
-      setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${e.message}` }]);
+    } catch (e: unknown) {
+      let errorMessage = 'An unknown error occurred.';
+      if (e instanceof Error) {
+        errorMessage = e.message;
+      }
+      setMessages(prev => [...prev, { role: 'assistant', content: `⚠️ ${errorMessage}` }]);
     } finally {
       setLoading(false);
       setStreaming('');

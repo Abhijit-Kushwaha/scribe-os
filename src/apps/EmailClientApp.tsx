@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { Mail, Send, Inbox, Star, Trash2, AlertCircle, CheckCircle, Paperclip, Reply, Forward, Archive, Search, Plus } from 'lucide-react';
-import { supabase } from '@/integrations/supabase/client';
+import { supabase } from "@/lib/supabase/client";
 
 interface ComposeEmail {
   to: string;
@@ -54,8 +54,12 @@ const EmailClientApp: React.FC = () => {
         setStatus({ type: 'success', message: 'Email sent!' });
         setCompose({ to: '', subject: '', body: '' });
       }
-    } catch (err: any) {
-      setStatus({ type: 'error', message: err.message || 'Failed to send' });
+    } catch (err: unknown) {
+      let errorMessage = 'Failed to send';
+      if (err instanceof Error) {
+        errorMessage = err.message;
+      }
+      setStatus({ type: 'error', message: errorMessage });
     } finally {
       setSending(false);
     }
